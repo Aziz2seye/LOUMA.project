@@ -32,7 +32,7 @@ if uploaded_file:
         "pvt_sosy134", "pvt_sosy0290", "pvt_sosy0560", "pvt_sosy165",
         "pvt_dfallf0271", "pvt_dfallf0182", "pvt_dfallf0272", "pvt_dfallf0220",
         "Pvt_mbpling114", "Pvt_mbpling009", "Pvt_mbpling0230", "Pvt_mbpling173",
-        "pvt_smmc301", "pvt_smmc2695", "pvt_smmc303", "pvt_smmc653",
+        "pvt_smmc301", "pvt_smmc2695", "pvt_smmc303", "pvt_smmc2928",
         "pvt_tcg_0260", "pvt_tcg_0331", "pvt_tcg_0124", "pvt_tcg_0035"]
 
     details = ["En Cours-Identification", "Identifie", "Identifie Photo", ]
