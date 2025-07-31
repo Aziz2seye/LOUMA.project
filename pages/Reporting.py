@@ -30,7 +30,7 @@ if st.session_state.get("reporting_type") == "journalier":
     
     if uploaded_file: 
         if uploaded_file.name.endswith('.csv'):
-            df = pd.read_csv(uploaded_file, encoding='utf-8', sep=';')
+            df = pd.read_csv(uploaded_file, encoding='utf-8', sep='|')
         else:
             xls = pd.ExcelFile(uploaded_file)
             sheet_names = xls.sheet_names

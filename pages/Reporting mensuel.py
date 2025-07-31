@@ -42,7 +42,7 @@ if st.session_state.get("reporting_type") == "reporting mensuel":
 
             # ✅ Nettoyage des colonnes
             df = df.rename(columns={
-                'MSISDN': 'TOTAL_SIM',
+                'MSISDN': 'REALISATION',
                 'ACCUEIL_VENDEUR': 'PVT',
                 'LOGIN_VENDEUR': 'LOGIN',
                 'AGENCE_VENDEUR': 'DRV'
@@ -57,12 +57,12 @@ if st.session_state.get("reporting_type") == "reporting mensuel":
             df_filtre = df[df['LOGIN'].isin(logins_concernes) & df['ETAT_IDENTIFICATION'].astype(str).isin(details)]
 
             st.success("✅ Fichier filtré avec succès !")
-            st.write("📊 Ventes LOUMA journalier :", df_filtre.shape[0], "lignes")
+            st.write("📊 Ventes LOUMA mensuels :", df_filtre.shape[0], "lignes")
             st.dataframe(df_filtre)
 
             # 📊 Résumé par VTO
             df_summary = df_filtre.groupby(['DRV', 'PVT', 'PRENOM_VENDEUR', 'NOM_VENDEUR', 'LOGIN']).agg({
-                'TOTAL_SIM': 'count'
+                'REALISATION': 'count'
             }).reset_index().sort_values(['DRV', 'PVT'])
 
             # Remplacer DRV
@@ -80,11 +80,11 @@ if st.session_state.get("reporting_type") == "reporting mensuel":
             df_summary_display['PVT'] = df_summary_display['PVT'].mask(df_summary_display['PVT'].duplicated())
 
             # 📊 Ventes par PVT
-            df_summary2 = df_filtre.groupby(['DRV', 'PVT']).agg({'TOTAL_SIM': 'count'}).reset_index()
-            df_summary2["OBJECTIF"] = 240
-            df_summary2["TR"] = (df_summary2['TOTAL_SIM'] / df_summary2['OBJECTIF']).apply(lambda x: f"{round(x*100)}%")
+            df_summary2 = df_filtre.groupby(['DRV', 'PVT']).agg({'REALISATION': 'count'}).reset_index()
+            df_summary2["OBJECTIF"] = 960
+            df_summary2["TR"] = (df_summary2['REALISATION'] / df_summary2['OBJECTIF']).apply(lambda x: f"{round(x*100)}%")
 
-            total_sim_sum = df_summary2['TOTAL_SIM'].sum()
+            total_sim_sum = df_summary2['REALISATION'].sum()
             objectif_sum = df_summary2['OBJECTIF'].sum()
             tr_mean = df_summary2['TR'].apply(lambda x: float(x.strip('%'))).mean()
 
@@ -102,7 +102,7 @@ if st.session_state.get("reporting_type") == "reporting mensuel":
             # 🧾 Export Excel
             temp_file = tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False)
             with pd.ExcelWriter(temp_file.name, engine='openpyxl') as writer:
-                df_summary_display.to_excel(writer, sheet_name='Résumé Ventes', index=False)
+                df_summary_display.to_excel(writer, sheet_name='Ventes par VTO', index=False)
                 df_summary2.to_excel(writer, sheet_name='Ventes Par PVT', index=False)
 
             wb = load_workbook(temp_file.name)
@@ -116,13 +116,13 @@ if st.session_state.get("reporting_type") == "reporting mensuel":
             st.download_button(
                 label="📥 Télécharger le fichier Excel",
                 data=final_buffer,
-                file_name="Weekly Reporting.xlsx",
+                file_name="Monthly Reporting.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
 
 if st.session_state.get("reporting_type") == "paiement mensuel":
 
-        uploaded_file = st.file_uploader("📁 Importer le fichier Excel brut (hebdomadaire)", type=["xlsx", "csv"])
+        uploaded_file = st.file_uploader("📁 Importer le fichier Excel brut (mensuel)", type=["xlsx", "csv"])
     
         if uploaded_file: 
             if uploaded_file.name.endswith('.csv'):
@@ -140,12 +140,12 @@ if st.session_state.get("reporting_type") == "paiement mensuel":
 
             # ✅ Nettoyage des colonnes
             df = df.rename(columns={
-                'MSISDN': 'TOTAL_SIM',
+                'MSISDN': 'REALISATION',
                 'ACCUEIL_VENDEUR': 'PVT',
                 'LOGIN_VENDEUR': 'LOGIN',
                 'AGENCE_VENDEUR': 'DRV'
-            })
-
+              })
+            
             df['LOGIN'] = df['LOGIN'].astype(str).str.lower()
             df['DRV'] = df['DRV'].astype(str).str.strip().str.upper()
             df['NOM_VENDEUR'] = df['NOM_VENDEUR'].astype(str).str.strip().str.upper()
@@ -155,7 +155,7 @@ if st.session_state.get("reporting_type") == "paiement mensuel":
             df_filtre = df[df['LOGIN'].isin(logins_concernes) & df['ETAT_IDENTIFICATION'].astype(str).isin(details)]
 
             st.success("✅ Fichier filtré avec succès !")
-            st.write("📊 Ventes LOUMA journalier :", df_filtre.shape[0], "lignes")
+            st.write("📊 Ventes LOUMA mensuels :", df_filtre.shape[0], "lignes")
             st.dataframe(df_filtre)
 
             # Remplacer DRV
@@ -168,10 +168,12 @@ if st.session_state.get("reporting_type") == "paiement mensuel":
                 "DV-DRVE_DIRECTION REGIONALE DES VENTES EST": "DR EST"})
             
             #définir les colonnes pour les paiements
+            df_filtre = df_filtre.groupby(['DRV', 'PVT', 'PRENOM_VENDEUR', 'NOM_VENDEUR', 'LOGIN']).agg({
+            'REALISATION': 'count'}).reset_index().sort_values(['DRV', 'PVT'])
             df_filtre['OBJECTIF'] = 240
-            df_filtre["TAUX D'ATTEINTE"] = (df_filtre['TOTAL_SIM'] / df_filtre['OBJECTIF']).apply(lambda x: f"{round(x*100)}%")
+            df_filtre["TAUX D'ATTEINTE"] = (df_filtre['REALISATION'] / df_filtre['OBJECTIF']).apply(lambda x: f"{round(x*100)}%")
             df_filtre['SI 100% ATTEINT'] = 100000
-            df_filtre['PAIEMENT'] = df_filtre['TOTAL_SIM'].apply(lambda x: 100000 if x >= 240 else round((x/240)*100000))
+            df_filtre['PAIEMENT'] = df_filtre['REALISATION'].apply(lambda x: 100000 if x >= 240 else round((x/240)*100000))
             df_filtre['PAIEMENT CHAUFFEUR'] = 150000
             df_filtre['PAIEMENT CHAUFFEUR'] = df_filtre['PAIEMENT CHAUFFEUR'].mask(df_filtre['DRV'].duplicated())
             df_filtre['TOTAL SIM+CHAUFFEUR'] = None
@@ -211,7 +213,7 @@ if st.session_state.get("reporting_type") == "paiement mensuel":
 
             # Affichage du tableau simplifié
             #cols_affichage = ['DRV', 'PVT', 'PRENOM_VENDEUR', 'NOM_VENDEUR', 'TOTAL_SIM']
-            cols_affichage = ['DRV', 'PVT', 'PRENOM_VENDEUR', 'NOM_VENDEUR', 'TOTAL_SIM', 'OBJECTIF', "TAUX D'ATTEINTE", 'SI 100% ATTEINT', 'PAIEMENT', 'PAIEMENT CHAUFFEUR', 'TOTAL SIM+CHAUFFEUR']
+            cols_affichage = ['DRV', 'PVT', 'PRENOM_VENDEUR', 'NOM_VENDEUR', 'REALISATION', 'OBJECTIF', "TAUX D'ATTEINTE", 'SI 100% ATTEINT', 'PAIEMENT', 'PAIEMENT CHAUFFEUR', 'TOTAL SIM+CHAUFFEUR']
             st.dataframe(df_with_totals[cols_affichage])
 
             # Export Excel

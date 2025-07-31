@@ -36,7 +36,7 @@ if uploaded_file:
         "pvt_tcg_0260", "pvt_tcg_0331", "pvt_tcg_0124", "pvt_tcg_0035"]
 
         # Nettoyage / Préparation
-    df = df.rename(columns={'SOMME_SIM_VENDUES': 'TOTAL_SIM'})
+    #df = df.rename(columns={'SOMME_SIM_VENDUES': 'TOTAL_SIM'})
     df = df.rename(columns={'ACCUEIL_VENDEUR': 'PVT'})
     df = df.rename(columns={'LOGIN_VENDEUR': 'LOGIN'})
     df = df.rename(columns={'AGENCE_VENDEUR': 'DRV'})
