@@ -179,10 +179,10 @@ if st.session_state.get("reporting_type") == "paiement mensuel":
             df_filtre['TOTAL SIM+CHAUFFEUR'] = None
 
             # Fusionner pour ajouter la colonne KABBU
-            df_filtre = df_filtre.merge(vto_df[["LOGIN", "KABBU"]], left_on="PVT", right_on="LOGIN", how="left")
+            df_filtre = df_filtre.merge(vto_df[["LOGIN", "KABBU"]], how="left")
 
             # Supprimer la colonne LOGIN si tu veux uniquement garder PVT et KABBU
-            df_filtre.drop(columns=["LOGIN"], inplace=True)
+            #df_filtre.drop(columns=["LOGIN"], inplace=True)
 
             # 👉 Ajouter les lignes de total après chaque DRV
             df_with_totals = pd.DataFrame(columns=df_filtre.columns)
@@ -219,7 +219,7 @@ if st.session_state.get("reporting_type") == "paiement mensuel":
 
             # Affichage du tableau simplifié
             #cols_affichage = ['DRV', 'PVT', 'PRENOM_VENDEUR', 'NOM_VENDEUR', 'TOTAL_SIM']
-            cols_affichage = ['DRV', 'PVT', 'PRENOM_VENDEUR', 'NOM_VENDEUR', 'REALISATION', 'OBJECTIF', "TAUX D'ATTEINTE", 'SI 100% ATTEINT', 'PAIEMENT', 'PAIEMENT CHAUFFEUR', 'TOTAL SIM+CHAUFFEUR']
+            cols_affichage = ['DRV', 'PVT', 'PRENOM_VENDEUR', 'NOM_VENDEUR','KABBU' 'REALISATION', 'OBJECTIF', "TAUX D'ATTEINTE", 'SI 100% ATTEINT', 'PAIEMENT', 'PAIEMENT CHAUFFEUR', 'TOTAL SIM+CHAUFFEUR']
             st.dataframe(df_with_totals[cols_affichage])
 
             # Export Excel
