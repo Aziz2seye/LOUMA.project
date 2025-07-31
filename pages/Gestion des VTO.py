@@ -6,6 +6,7 @@ from openpyxl.utils import get_column_letter
 import tempfile
 from io import BytesIO
 import os
+from utils import load_vto  
 # 📁 Structure du projet :
 # - main.py (point d'entrée)
 # - pages/
