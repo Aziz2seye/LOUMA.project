@@ -178,6 +178,12 @@ if st.session_state.get("reporting_type") == "paiement mensuel":
             df_filtre['PAIEMENT CHAUFFEUR'] = df_filtre['PAIEMENT CHAUFFEUR'].mask(df_filtre['DRV'].duplicated())
             df_filtre['TOTAL SIM+CHAUFFEUR'] = None
 
+            # Fusionner pour ajouter la colonne KABBU
+            df_filtre = df_filtre.merge(vto_df[["LOGIN", "KABBU"]], left_on="PVT", right_on="LOGIN", how="left")
+
+            # Supprimer la colonne LOGIN si tu veux uniquement garder PVT et KABBU
+            df_filtre.drop(columns=["LOGIN"], inplace=True)
+
             # 👉 Ajouter les lignes de total après chaque DRV
             df_with_totals = pd.DataFrame(columns=df_filtre.columns)
 
