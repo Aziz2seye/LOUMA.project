@@ -24,7 +24,7 @@ st.set_page_config(page_title="🧍 Gestion des VTO", layout="wide")
 
 st.title("🧍 Gestion des VTO")
 
-DATA_PATH = r"C:\Users\hp\Downloads\Dossier LOUMA\vto_list.xlsx"
+DATA_PATH = "vto_list.xlsx"
 
 # Charger la liste existante
 def load_vto():
