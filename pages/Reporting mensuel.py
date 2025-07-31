@@ -135,7 +135,7 @@ if st.session_state.get("reporting_type") == "paiement mensuel":
 
             # ✅ Charger logins depuis fichier VTO
             vto_df = load_vto()
-            logins_concernes = vto_df["LOGIN"].astype(str).str.lower().tolist()
+            logins_concernes = vto_df["LOGIN"].astype(str).tolist()
             details = ["En Cours-Identification", "Identifie", "Identifie Photo"]
 
             # ✅ Nettoyage des colonnes
@@ -219,7 +219,7 @@ if st.session_state.get("reporting_type") == "paiement mensuel":
 
             # Affichage du tableau simplifié
             #cols_affichage = ['DRV', 'PVT', 'PRENOM_VENDEUR', 'NOM_VENDEUR', 'TOTAL_SIM']
-            cols_affichage = ['DRV', 'PVT', 'PRENOM_VENDEUR', 'NOM_VENDEUR','KABBU' 'REALISATION', 'OBJECTIF', "TAUX D'ATTEINTE", 'SI 100% ATTEINT', 'PAIEMENT', 'PAIEMENT CHAUFFEUR', 'TOTAL SIM+CHAUFFEUR']
+            cols_affichage = ['DRV', 'PVT', 'PRENOM_VENDEUR', 'NOM_VENDEUR','KABBU','REALISATION', 'OBJECTIF', "TAUX D'ATTEINTE", 'SI 100% ATTEINT', 'PAIEMENT', 'PAIEMENT CHAUFFEUR', 'TOTAL SIM+CHAUFFEUR']
             st.dataframe(df_with_totals[cols_affichage])
 
             # Export Excel
