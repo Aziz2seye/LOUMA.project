@@ -81,7 +81,7 @@ if st.session_state.get("reporting_type") == "reporting mensuel":
 
             # 📊 Ventes par PVT
             df_summary2 = df_filtre.groupby(['DRV', 'PVT']).agg({'TOTAL_SIM': 'count'}).reset_index()
-            df_summary2["OBJECTIF"] = 240
+            df_summary2["OBJECTIF"] = 960
             df_summary2["TR"] = (df_summary2['TOTAL_SIM'] / df_summary2['OBJECTIF']).apply(lambda x: f"{round(x*100)}%")
 
             total_sim_sum = df_summary2['TOTAL_SIM'].sum()
