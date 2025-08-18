@@ -146,7 +146,7 @@ if st.session_state.get("reporting_type") == "paiement mensuel":
                 'AGENCE_VENDEUR': 'DRV'
               })
             
-            df['LOGIN'] = df['LOGIN'].astype(str).str.lower()
+            df['LOGIN'] = df['LOGIN'].astype(str)
             df['DRV'] = df['DRV'].astype(str).str.strip().str.upper()
             df['NOM_VENDEUR'] = df['NOM_VENDEUR'].astype(str).str.strip().str.upper()
             df['PRENOM_VENDEUR'] = df['PRENOM_VENDEUR'].astype(str).str.strip().str.upper()
