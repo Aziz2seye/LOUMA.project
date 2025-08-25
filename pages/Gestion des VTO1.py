@@ -24,12 +24,16 @@ st.set_page_config(page_title="🧍 Gestion des VTO", layout="wide")
 
 st.title("🧍 Gestion des VTO")
 
-DATA_PATH = r"C:\Users\hp\Downloads\Dossier LOUMA\vto_list.xlsx"
+# === Feuille 1 : vto_list ===
+DATA_PATH = "https://docs.google.com/spreadsheets/d/https://docs.google.com/spreadsheets/d/1rwz5S71DXwD2r1bonqG1Sax1ebxl2dINi-RHypQMkSw/export?format=csv&gid=0"
+
+
+
 
 # Charger la liste existante
 def load_vto():
     if os.path.exists(DATA_PATH):
-        return pd.read_excel(DATA_PATH)
+        return pd.read_csv(DATA_PATH, sep=",", on_bad_lines="skip")
     else:
         return pd.DataFrame(columns=["LOGIN", "PRENOM", "NOM"])
 
