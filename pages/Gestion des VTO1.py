@@ -20,7 +20,7 @@ import os
 # ====================
 import streamlit as st
 
-st.set_page_config(page_title="🧍 Gestion des VTO", layout="wide")
+st.set_page_config(page_title="🧍 Gestion des VTOOOO", layout="wide")
 
 st.title("🧍 Gestion des VTO")
 
