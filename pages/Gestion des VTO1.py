@@ -30,18 +30,13 @@ DATA_PATH = "https://docs.google.com/spreadsheets/d/https://docs.google.com/spre
 
 
 
-# Charger la liste existante
-def load_vto():
-    if os.path.exists(DATA_PATH):
-        return pd.read_csv(DATA_PATH, sep=",", on_bad_lines="skip")
-    else:
-        return pd.DataFrame(columns=["LOGIN", "PRENOM", "NOM"])
+
 
 # Sauvegarder la liste
 def save_vto(df):
     df.to_excel(DATA_PATH, index=False)
 
-vto_df = load_vto()
+vto_df = pd.read_csv(DATA_PATH, sep=",", on_bad_lines="skip")
 
 st.subheader("📋 Liste actuelle des VTO")
 st.dataframe(vto_df)
