@@ -168,11 +168,11 @@ if st.session_state.get("reporting_type") == "hebdomadaire":
         # Remplacer DRV
         df_summary["DRV"] = df_summary["DRV"].replace({ 
             "DV-DRV2_DIRECTION REGIONALE DES VENTES DAKAR 2": "DR2",
-            "DV-DRVS_DIRECTION REGIONALE DES VENTES SUD": "DR SUD",
-            "DV-DRVSE_DIRECTION REGIONALE DES VENTES SUD-EST": "SUD EST",
-            "DV-DRVN_DIRECTION REGIONALE DES VENTES NORD": "DR NORD",
-            "DV-DRVC_DIRECTION REGIONALE DES VENTES CENTRE": "DR CENTRE",
-            "DV-DRVE_DIRECTION REGIONALE DES VENTES EST": "DR EST"
+            "DV-DRVS_DIRECTION REGIONALE DES VENTES SUD": "DRS",
+            "DV-DRVSE_DIRECTION REGIONALE DES VENTES SUD-EST": "DRSE",
+            "DV-DRVN_DIRECTION REGIONALE DES VENTES NORD": "DRN",
+            "DV-DRVC_DIRECTION REGIONALE DES VENTES CENTRE": "DRC",
+            "DV-DRVE_DIRECTION REGIONALE DES VENTES EST": "DRE"
         })
 
         df_summary_display = df_summary.copy()
