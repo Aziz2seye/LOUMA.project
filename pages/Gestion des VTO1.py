@@ -25,7 +25,7 @@ st.set_page_config(page_title="🧍 Gestion des VTO", layout="wide")
 st.title("🧍 Gestion des VTOOOO")
 
 # === Feuille 1 : vto_list ===
-DATA_PATH = "https://docs.google.com/spreadsheets/d/https://docs.google.com/spreadsheets/d/1rwz5S71DXwD2r1bonqG1Sax1ebxl2dINi-RHypQMkSw/export?format=csv&gid=0"
+DATA_PATH = "https://docs.google.com/spreadsheets/d/1rwz5S71DXwD2r1bonqG1Sax1ebxl2dINi-RHypQMkSw/export?format=csv&gid=0"
 
 
 
