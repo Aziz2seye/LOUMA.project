@@ -27,7 +27,7 @@ st.write("Bienvenue dans l'application LOUMA.")
 st.write("Avec les animations LOUMAS, Renforçons notre présence" \
 " commerciale dans les Loumas en y établissant un point de rencontre dédié aux clients. ")
 
-st.write("Utilisez le menu sur la gauche pour naviguer entre les pages :")
+st.write("Utilisez le MENU sur la gauche pour naviguer entre les pages :")
 
 st.markdown("""
 - 🧍 **Gestion des VTO** : Ajouter, modifier ou supprimer les VTO
