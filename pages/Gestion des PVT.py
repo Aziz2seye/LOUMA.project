@@ -26,7 +26,7 @@ st.set_page_config(page_title="🧍 Gestion des PVT", layout="wide")
 
 st.title("🧍 Gestion des PVT")
 
-DATA_PATH = "vto_list.xlsx"
+DATA_PATH1 = "pvt_list.xlsx"
 
 # Charger la liste existante
 #def load_vto():
@@ -37,7 +37,7 @@ DATA_PATH = "vto_list.xlsx"
 
 # Sauvegarder la liste
 def save_vto(df):
-    df.to_excel(DATA_PATH, sheet_name="pvt", index=False)
+    df.to_excel(DATA_PATH1, index=False)
 
 vto_df = load_pvt()
 
