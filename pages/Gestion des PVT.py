@@ -44,7 +44,7 @@ vto_df = load_pvt()
 st.subheader("📋 Liste actuelle des PVT")
 st.dataframe(vto_df)
 
-st.subheader("➕ Ajouter un VTO")
+st.subheader("➕ Ajouter un PVT")
 with st.form("form_ajout"):
     nom = st.text_input("Nom PVT")
     contact = st.text_input("Contact")
@@ -56,7 +56,7 @@ with st.form("form_ajout"):
         st.success("✅ PVT ajouté avec succès !")
         st.experimental_rerun()
 
-st.subheader("✏️ Modifier un VTO")
+st.subheader("✏️ Modifier un PVT")
 if not vto_df.empty:
     nom_to_edit = st.selectbox("Choisir un pvt à modifier :", vto_df["PVT"].unique())
     pvt_to_edit = vto_df[vto_df["PVT"] == nom_to_edit].iloc[0]
@@ -73,7 +73,7 @@ if not vto_df.empty:
             st.success("✏️ PVT modifié avec succès !")
             st.experimental_rerun()
 
-st.subheader("🗑️ Supprimer un VTO")
+st.subheader("🗑️ Supprimer un PVT")
 pvt_to_delete = st.selectbox("Choisir un pvt à supprimer :", vto_df["PVT"])
 if st.button("Supprimer"):
     vto_df = vto_df[vto_df["PVT"] != pvt_to_delete]
