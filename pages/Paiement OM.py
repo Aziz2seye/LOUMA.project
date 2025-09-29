@@ -8,9 +8,6 @@ st.title("PAIEMENT OM")
 
 
 
-
-
-
 uploaded_file = st.file_uploader("📁 Importer le fichier Excel brut (mensuel)", type=["xlsx", "csv"])
     
 if uploaded_file: 
