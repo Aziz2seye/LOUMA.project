@@ -8,6 +8,16 @@ import streamlit as st
 import pandas as pd
 from io import BytesIO
 
+import streamlit as st
+import pandas as pd
+from io import BytesIO
+from openpyxl import load_workbook
+import tempfile
+from utils import load_vto 
+import streamlit as st
+import pandas as pd
+from io import BytesIO
+
 st.set_page_config(page_title="📊 Paiement Mensuel Global", layout="wide")
 st.title("📊 Génération Paiement Mensuel (SIM + OM)")
 
