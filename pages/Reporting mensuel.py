@@ -175,7 +175,7 @@ if st.session_state.get("reporting_type") == "paiement mensuel":
             df_filtre['SI 100% ATTEINT'] = 75000
             df_filtre['PAIEMENT'] = df_filtre['REALISATION'].apply(lambda x: 75000 if x >= 240 else round((x/240)*75000))
             df_filtre['PAIEMENT CHAUFFEUR'] = 100000
-            df_filtre['PAIEMENT CHAUFFEUR'] = df_filtre['PAIEMENT CHAUFFEUR'].mask(df_filtre['DRV'].duplicated())
+            df_filtre['PAIEMENT CHAUFFEUR'] = df_filtre['PAIEMENT CHAUFFEUR'].mask(df_filtre['PVT'].duplicated())
             df_filtre['TOTAL SIM+CHAUFFEUR'] = None
 
             # Fusionner pour ajouter la colonne KABBU
