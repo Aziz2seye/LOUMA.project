@@ -72,7 +72,7 @@ if file_sim and file_om:
     st.success("✅ Fichier filtré avec succès !")
     st.write("📊 Ventes LOUMA mensuels :", df_filtre.shape[0], "lignes")
     st.dataframe(df_filtre)
-
+    
      # Remplacer DRV
     df_filtre["DRV"] = df_filtre["DRV"].replace({ 
                 "DV-DRV2_DIRECTION REGIONALE DES VENTES DAKAR 2": "DR2",

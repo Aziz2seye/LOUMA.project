@@ -172,9 +172,9 @@ if st.session_state.get("reporting_type") == "paiement mensuel":
             'REALISATION': 'count'}).reset_index().sort_values(['DRV', 'PVT'])
             df_filtre['OBJECTIF'] = 240
             df_filtre["TAUX D'ATTEINTE"] = (df_filtre['REALISATION'] / df_filtre['OBJECTIF']).apply(lambda x: f"{round(x*100)}%")
-            df_filtre['SI 100% ATTEINT'] = 100000
-            df_filtre['PAIEMENT'] = df_filtre['REALISATION'].apply(lambda x: 100000 if x >= 240 else round((x/240)*100000))
-            df_filtre['PAIEMENT CHAUFFEUR'] = 150000
+            df_filtre['SI 100% ATTEINT'] = 75000
+            df_filtre['PAIEMENT'] = df_filtre['REALISATION'].apply(lambda x: 75000 if x >= 240 else round((x/240)*75000))
+            df_filtre['PAIEMENT CHAUFFEUR'] = 100000
             df_filtre['PAIEMENT CHAUFFEUR'] = df_filtre['PAIEMENT CHAUFFEUR'].mask(df_filtre['DRV'].duplicated())
             df_filtre['TOTAL SIM+CHAUFFEUR'] = None
 
@@ -208,7 +208,7 @@ if st.session_state.get("reporting_type") == "paiement mensuel":
             df_par_pvt = df_filtre.groupby(['DRV', 'PVT']).agg({'PAIEMENT': 'sum'}).reset_index()
             df_par_pvt = df_par_pvt.rename(columns={'PAIEMENT': 'MONTANT'})
 
-            df_par_pvt['MONTANT'] = df_par_pvt['MONTANT'] + 150000
+            df_par_pvt['MONTANT'] = df_par_pvt['MONTANT'] + 100000
 
             # 2. Ajouter GAIN PVT (5%) et TOTAL GENERAL
             df_par_pvt['GAIN PVT (5%)'] = df_par_pvt['MONTANT'] * 0.05
