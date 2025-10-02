@@ -44,7 +44,7 @@ if uploaded_file:
             df_filtre['OBJECTIF'] = 120
             df_filtre["TAUX D'ATTEINTE"] = (df_filtre['REALISATION'] / df_filtre['OBJECTIF']).apply(lambda x: f"{round(x*100)}%")
             df_filtre['SI 100% ATTEINT'] = 25000
-            df_filtre['PAIEMENT'] = df_filtre['REALISATION'].apply(lambda x: 50000 if x >= 120 else round((x/120)*50000))
+            df_filtre['PAIEMENT'] = df_filtre['REALISATION'].apply(lambda x: 25000 if x >= 120 else round((x/120)*25000))
             df_filtre['PAIEMENT CHAUFFEUR'] = 150000
             
             df_filtre['TOTAL SIM+CHAUFFEUR'] = None
