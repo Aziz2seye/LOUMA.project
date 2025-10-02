@@ -17,6 +17,7 @@ from utils import load_vto
 import streamlit as st
 import pandas as pd
 from io import BytesIO
+from utils import load_vto
 
 st.set_page_config(page_title="📊 Paiement Mensuel Global", layout="wide")
 st.title("📊 Génération Paiement Mensuel (SIM + OM)")
@@ -45,41 +46,155 @@ if file_sim and file_om:
         selected_sheet = st.selectbox("🗂️ Feuille OM :", sheet_names)
         df_om = pd.read_excel(file_om, sheet_name=selected_sheet)
 
+
+    #Harmonisation colonnes SIM
+    # ✅ Charger logins depuis fichier VTO
+    vto_df = load_vto()
+    logins_concernes = vto_df["LOGIN"].astype(str).tolist()
+    details = ["En Cours-Identification", "Identifie", "Identifie Photo"]
+    df = df_sim.copy()
+    # ✅ Nettoyage des colonnes
+    df = df.rename(columns={
+    'MSISDN': 'REALISATION',
+    'ACCUEIL_VENDEUR': 'PVT',
+    'LOGIN_VENDEUR': 'LOGIN',
+    'AGENCE_VENDEUR': 'DRV'
+              })
+            
+    df['LOGIN'] = df['LOGIN'].astype(str)
+    df['DRV'] = df['DRV'].astype(str).str.strip().str.upper()
+    df['NOM_VENDEUR'] = df['NOM_VENDEUR'].astype(str).str.strip().str.upper()
+    df['PRENOM_VENDEUR'] = df['PRENOM_VENDEUR'].astype(str).str.strip().str.upper()
+
+    # 🔍 Filtrage
+    df_filtre = df[df['LOGIN'].isin(logins_concernes) & df['ETAT_IDENTIFICATION'].astype(str).isin(details)]
+
+    st.success("✅ Fichier filtré avec succès !")
+    st.write("📊 Ventes LOUMA mensuels :", df_filtre.shape[0], "lignes")
+    st.dataframe(df_filtre)
+
+     # Remplacer DRV
+    df_filtre["DRV"] = df_filtre["DRV"].replace({ 
+                "DV-DRV2_DIRECTION REGIONALE DES VENTES DAKAR 2": "DR2",
+                "DV-DRVS_DIRECTION REGIONALE DES VENTES SUD": "DR SUD",
+                "DV-DRVSE_DIRECTION REGIONALE DES VENTES SUD-EST": "SUD EST",
+                "DV-DRVN_DIRECTION REGIONALE DES VENTES NORD": "DR NORD",
+                "DV-DRVC_DIRECTION REGIONALE DES VENTES CENTRE": "DR CENTRE",
+                "DV-DRVE_DIRECTION REGIONALE DES VENTES EST": "DR EST"})
+            
+    #définir les colonnes pour les paiements
+    df_filtre = df_filtre.groupby(['DRV', 'PVT', 'PRENOM_VENDEUR', 'NOM_VENDEUR', 'LOGIN']).agg({
+            'REALISATION': 'count'}).reset_index().sort_values(['DRV', 'PVT'])
+    df_filtre['OBJECTIF'] = 240
+    df_filtre["TAUX D'ATTEINTE"] = (df_filtre['REALISATION'] / df_filtre['OBJECTIF']).apply(lambda x: f"{round(x*100)}%")
+    df_filtre['SI 100% ATTEINT'] = 75000
+    df_filtre['PAIEMENT_SIM'] = df_filtre['REALISATION'].apply(lambda x: 75000 if x >= 240 else round((x/240)*75000))
+            #df_filtre['PAIEMENT CHAUFFEUR'] = 100000
+            #df_filtre['PAIEMENT CHAUFFEUR'] = df_filtre['PAIEMENT CHAUFFEUR'].mask(df_filtre['DRV'].duplicated())
+            #df_filtre['TOTAL SIM+CHAUFFEUR'] = None
+
+    # Fusionner pour ajouter la colonne KABBU
+    df_filtre = df_filtre.merge(vto_df[["LOGIN", "KABBU"]], how="left")
+
+            
+
+    # 👉 Ajouter les lignes de total après chaque DRV
+    df_with_totals = pd.DataFrame(columns=df_filtre.columns)
+
+    for drv, group in df_filtre.groupby('DRV'):
+        df_with_totals = pd.concat([df_with_totals, group], ignore_index=True)
+
+        total_paiement = group['PAIEMENT_SIM'].sum()
+        total_general = group['PAIEMENT_SIM'].sum()
+        row_total = {
+                    'DRV': f"{drv}",
+                    'PVT': "TOTAL PVT",
+                    'PAIEMENT_SIM': total_paiement ,
+                    
+                        }
+        df_with_totals = pd.concat([df_with_totals, pd.DataFrame([row_total])], ignore_index=True)
+    
+    # Affichage du tableau simplifié
+    cols_affichage = ['DRV', 'PVT', 'PRENOM_VENDEUR', 'NOM_VENDEUR','KABBU','REALISATION', 'OBJECTIF', "TAUX D'ATTEINTE", 'SI 100% ATTEINT', 'PAIEMENT', 'PAIEMENT CHAUFFEUR', 'TOTAL SIM+CHAUFFEUR']
+
+
+
     # Harmonisation colonnes OM
-    df_om = df_om.rename(columns={
-        "NUMERO": "KABBU",
-        "REALISATIONS AOUT": "REALISATION_OM"
-    })
+    # ✅ Charger logins depuis fichier VTO
+    vto_df = load_vto()
+    logins_concernes = vto_df["LOGIN"].astype(str).tolist()
+    details = ["En Cours-Identification", "Identifie", "Identifie Photo"]
+
+    # ✅ Nettoyage des colonnes
+    
+    df_om['LOGIN'] = df['LOGIN'].astype(str)
+            
+    df_om['NOM_VENDEUR'] = df_om['NOM_VENDEUR'].astype(str).str.strip().str.upper()
+    df_om['PRENOM_VENDEUR'] = df_om['PRENOM_VENDEUR'].astype(str).str.strip().str.upper()
+
+    # 🔍 Filtrage
+    df_filtre_om = df_om[df_om['LOGIN'].isin(logins_concernes)]
+
+    st.success("✅ Fichier filtré avec succès !")
+    st.write("📊 Ventes LOUMA mensuels :", df_filtre_om.shape[0], "lignes")
+    st.dataframe(df_filtre_om)
+
+            
+    #Définition des colonnes pour les paiements      
+    df_filtre_om['OBJECTIF'] = 120
+    df_filtre_om["TAUX D'ATTEINTE"] = (df_filtre_om['REALISATION_OM'] / df_filtre_om['OBJECTIF']).apply(lambda x: f"{round(x*100)}%")
+    df_filtre_om['SI 100% ATTEINT'] = 25000
+    df_filtre_om['PAIEMENT_OM'] = df_filtre_om['REALISATION_OM'].apply(lambda x: 25000 if x >= 120 else round((x/120)*25000))
+    #df_filtre['PAIEMENT CHAUFFEUR'] = 150000
+           
+    # 👉 Ajouter les lignes de total après chaque DRV
+    df_with_totals_om = pd.DataFrame(columns=df_filtre_om.columns)
+
+    for drv, group in df_with_totals_om.groupby('DRV'):
+                df_with_totals_om = pd.concat([df_with_totals_om, group], ignore_index=True)
+
+                total_paiement = group['PAIEMENT_OM'].sum()
+                total_general = group['PAIEMENT_OM'].sum()
+                row_total = {
+                    'DRV': f"{drv}",
+                    'PVT': "TOTAL PVT",
+                    'PAIEMENT_OM': total_paiement ,
+                    
+                        }
+                df_with_totals_om = pd.concat([df_with_totals_om, pd.DataFrame([row_total])], ignore_index=True)
+
+
+
+
+
+
+
+
+
 
     # === Fusionner sur KABBU et vendeur
     df_final = pd.merge(
-        df_sim,
-        df_om[["LOGIN", "KABBU", "PRENOM_VENDEUR", "NOM_VENDEUR", "REALISATION_OM"]],
-        on=["LOGIN", "KABBU", "PRENOM_VENDEUR", "NOM_VENDEUR"],
+        df_with_totals,
+        df_with_totals_om[["LOGIN", "PRENOM_VENDEUR", "NOM_VENDEUR", "REALISATION_OM"]],
+        on=["LOGIN", "PRENOM_VENDEUR", "NOM_VENDEUR"],
         how="outer"
     )
 
+
     # === Calcul des paiements
-    # SIM
-    df_final["OBJECTIF_SIM"] = 240
-    df_final["TAUX_ATTEINTE_SIM"] = (df_final["REALISATION"] / df_final["OBJECTIF_SIM"]).apply(lambda x: f"{round(x*100)}%")
-    df_final["SI_100_SIM"] = 100000
-    df_final["PAIEMENT_SIM"] = df_final["REALISATION"].apply(lambda x: 100000 if x >= 240 else round((x/240)*100000))
-
-    # OM
-    df_final["OBJECTIF_OM"] = 120
-    df_final["TAUX_ATTEINTE_OM"] = (df_final["REALISATION_OM"] / df_final["OBJECTIF_OM"]).apply(lambda x: f"{round(x*100)}%")
-    df_final["SI_100_OM"] = 50000
-    df_final["PAIEMENT_OM"] = df_final["REALISATION_OM"].apply(lambda x: 50000 if x >= 120 else round((x/120)*50000))
-
+    
     # Chauffeur
-    df_final["PAIEMENT_CHAUFFEUR"] = 150000
+    df_final["PAIEMENT_CHAUFFEUR"] = 100000
     df_final["TOTAL_PAIEMENT"] = df_final["PAIEMENT_SIM"].fillna(0) + df_final["PAIEMENT_OM"].fillna(0) + df_final["PAIEMENT_CHAUFFEUR"]
+
+    # ✅ Nettoyage des colonnes
+    df = df.rename(columns={
+    'REALISATION': 'REALISATION_SIM'})
 
     # Réorganisation des colonnes
     cols_final = [
         "DRV", "PVT", "PRENOM_VENDEUR", "NOM_VENDEUR", "KABBU",
-        "REALISATION", "OBJECTIF_SIM", "TAUX_ATTEINTE_SIM", "SI_100_SIM", "PAIEMENT_SIM",
+        "REALISATION_SIM", "OBJECTIF_SIM", "TAUX_ATTEINTE_SIM", "SI_100_SIM", "PAIEMENT_SIM",
         "REALISATION_OM", "OBJECTIF_OM", "TAUX_ATTEINTE_OM", "SI_100_OM", "PAIEMENT_OM",
         "PAIEMENT_CHAUFFEUR", "TOTAL_PAIEMENT"
     ]

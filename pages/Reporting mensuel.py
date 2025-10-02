@@ -236,3 +236,6 @@ if st.session_state.get("reporting_type") == "paiement mensuel":
                 file_name="paiement_mensuel_vto.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                 )
+
+
+
