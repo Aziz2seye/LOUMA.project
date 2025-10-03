@@ -50,7 +50,17 @@ if uploaded_file:
             df_filtre['TOTAL SIM+CHAUFFEUR'] = None
 
             
+            # === Générer tableau Paiement par PVT ===
+
+            # 1. Grouper par DRV et PVT pour obtenir le total des paiements
+            df_par_pvt = df_filtre.groupby(['DRV', 'PVT']).agg({'PAIEMENT': 'sum'}).reset_index()
+            df_par_pvt = df_par_pvt.rename(columns={'PAIEMENT': 'MONTANT'})
+
             
+
+            # 2. Ajouter GAIN PVT (5%) et TOTAL GENERAL
+            df_par_pvt['GAIN PVT (5%)'] = df_par_pvt['MONTANT'] * 0.05
+            df_par_pvt['TOTAL GENERAL'] = df_par_pvt['MONTANT'] + df_par_pvt['GAIN PVT (5%)']
 
             
 
@@ -61,6 +71,7 @@ if uploaded_file:
             buffer_paiement = BytesIO()
             with pd.ExcelWriter(buffer_paiement, engine='openpyxl') as writer:
                 df_filtre.to_excel(writer, sheet_name='DETAILS PAIEMENT JUIN VTO', index=False)
+                df_par_pvt.to_excel(writer, sheet_name='PAIEMENT PAR PVT', index=False)
                 #df_filtre[cols_affichage].to_excel(writer, sheet_name='PAIEMENT PAR PVT', index=False)
                 #df_par_pvt.to_excel(writer, sheet_name='PAIEMENT PAR PVT', index=False)
             buffer_paiement.seek(0)
