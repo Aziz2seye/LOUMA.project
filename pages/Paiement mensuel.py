@@ -218,26 +218,46 @@ if file_sim and file_om:
         how="outer"
     )
     df_test["PAIEMENT CHAUFFEUR"] = None
+    df_test["PAIEMENT SIM + OM + CHAUFFEUR"] = None
 
     # 👉 Ajouter les lignes de total après chaque DRV
     df_test_with_totals = pd.DataFrame(columns=df_test.columns)
-    for pvt, group in df_test.groupby('PVT'):
-                df_test_with_totals = pd.concat([df_test_with_totals, group], ignore_index=True)
 
-                total_paiement_om = group['PAIEMENT_OM'].sum()
-                total_paiement_sim = group['PAIEMENT_SIM'].sum()
-                chauffeur = 100000
-                #total_general = group['PAIEMENT_OM'].sum()
-                row_total = {
-                    
-                    'PVT': "TOTAL PVT",
-                    'PAIEMENT_OM': total_paiement_om ,
-                    'PAIEMENT_SIM': total_paiement_sim,
-                    'PAIEMENT CHAUFFEUR' : chauffeur
-                    
-                        }
-                df_test_with_totals = pd.concat([df_test_with_totals, pd.DataFrame([row_total])], ignore_index=True)
+    for drv, group_drv in df_test.groupby('DRV'):
+        for pvt, group_pvt in df_test.groupby('PVT'):
+                    df_test_with_totals = pd.concat([df_test_with_totals, group_pvt], ignore_index=True)
 
+                    total_paiement_om = group['PAIEMENT_OM'].sum()
+                    total_paiement_sim = group['PAIEMENT_SIM'].sum()
+                    chauffeur = 100000
+                    total = chauffeur + total_paiement_om + total_paiement_sim
+                    #total_general = group['PAIEMENT_OM'].sum()
+                    row_total = {
+                        
+                        'PVT': "TOTAL PVT",
+                        'PAIEMENT_OM': total_paiement_om ,
+                        'PAIEMENT_SIM': total_paiement_sim,
+                        'PAIEMENT CHAUFFEUR' : chauffeur
+                        
+                        
+                            }
+                    df_test_with_totals = pd.concat([df_test_with_totals, pd.DataFrame([row_total])], ignore_index=True)
+
+        total_paiement_om = group_drv['PAIEMENT_OM'].sum()
+        total_paiement_sim = group_drv['PAIEMENT_SIM'].sum()
+        chauffeur = 200000
+        total = chauffeur + total_paiement_om + total_paiement_sim
+        #total_general = group['PAIEMENT_OM'].sum()
+        row_total_drv = {
+                        
+                        'PVT': "TOTAL",
+                        'PAIEMENT_OM': total_paiement_om ,
+                        'PAIEMENT_SIM': total_paiement_sim,
+                        'PAIEMENT CHAUFFEUR' : chauffeur,
+                        'PAIEMENT SIM + OM + CHAUFFEUR' : total
+                            
+                            }
+        df_test_with_totals = pd.concat([df_test_with_totals, pd.DataFrame([row_total_drv])], ignore_index=True)
 
     st.dataframe(df_test_with_totals)
 
