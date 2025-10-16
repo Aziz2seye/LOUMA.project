@@ -151,7 +151,7 @@ if file_sim and file_om:
     df_filtre_om = df_filtre_om.merge(vto_df[["LOGIN", "DRV", "PVT"]], how="left")
     st.dataframe(df_filtre_om)
 
-    
+
     # 👉 Ajouter les lignes de total après chaque DRV
     df_with_totals_om = pd.DataFrame(columns=df_filtre_om.columns)
 
@@ -169,7 +169,7 @@ if file_sim and file_om:
                 df_with_totals_om = pd.concat([df_with_totals_om, pd.DataFrame([row_total])], ignore_index=True)
 
 
-
+    st.dataframe(df_with_totals_om)
 
 
 
