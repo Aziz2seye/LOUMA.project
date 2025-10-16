@@ -249,7 +249,7 @@ if file_sim and file_om:
         total = chauffeur + total_paiement_om_drv + total_paiement_sim_drv
         #total_general = group['PAIEMENT_OM'].sum()
         row_total_drv = {
-                        'DRV': "f{drv}",
+                        'DRV': f"{drv}",
                         'PVT': "TOTAL",
                         'PAIEMENT_OM': total_paiement_om_drv ,
                         'PAIEMENT_SIM': total_paiement_sim_drv,
