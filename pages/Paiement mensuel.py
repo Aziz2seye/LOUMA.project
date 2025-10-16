@@ -189,6 +189,32 @@ if file_sim and file_om:
  
     st.dataframe(df_final)
 
+    # 👉 Ajouter les lignes de total après chaque DRV
+    df_final_with_totals = pd.DataFrame(columns=df_final.columns)
+
+    for drv, group in df_final.groupby('DRV'):
+                df_final_with_totals = pd.concat([df_final_with_totals, group], ignore_index=True)
+
+                total_paiement_om = group['PAIEMENT_OM'].sum()
+                total_paiement_sim = group['PAIEMENT_SIM'].sum()
+                #total_general = group['PAIEMENT_OM'].sum()
+                row_total = {
+                    'DRV': f"{drv}",
+                    'PVT': "TOTAL PVT",
+                    'PAIEMENT_OM': total_paiement_om ,
+                    'PAIEMENT_SIM': total_paiement_sim 
+                    
+                        }
+                df_final_with_totals = pd.concat([df_final_with_totals, pd.DataFrame([row_total])], ignore_index=True)
+
+
+    st.dataframe(df_final_with_totals)
+
+
+
+
+
+
     # === Calcul des paiements
     
     # Chauffeur
