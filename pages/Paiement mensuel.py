@@ -182,7 +182,7 @@ if file_sim and file_om:
     # === Fusionner sur KABBU et vendeur
     df_final = pd.merge(
         df_with_totals,
-        df_with_totals_om[["LOGIN", "PRENOM_VENDEUR", "NOM_VENDEUR", "REALISATION_OM"]],
+        df_with_totals_om[["LOGIN", "PRENOM_VENDEUR", "NOM_VENDEUR", "REALISATION_OM", "OBJECTIF OM","TAUX D'ATTEINTE OM", "SI 100% ATTEINT OM", "PAIEMENT_OM"]],
         on=["LOGIN", "PRENOM_VENDEUR", "NOM_VENDEUR"],
         how="outer"
     )
