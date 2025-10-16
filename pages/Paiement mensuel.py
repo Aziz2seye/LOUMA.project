@@ -210,7 +210,36 @@ if file_sim and file_om:
 
     st.dataframe(df_final_with_totals)
 
+    #--------------------------------
+    df_test = pd.merge(
+        df_filtre,
+        df_filtre_om[["LOGIN", "PRENOM_VENDEUR", "NOM_VENDEUR", "REALISATION_OM", "OBJECTIF OM","TAUX D'ATTEINTE OM", "SI 100% ATTEINT OM", "PAIEMENT_OM"]],
+        on=["LOGIN", "PRENOM_VENDEUR", "NOM_VENDEUR"],
+        how="outer"
+    )
+    df_test["PAIEMENT CHAUFFEUR"] = None
 
+    # 👉 Ajouter les lignes de total après chaque DRV
+    df_test_with_totals = pd.DataFrame(columns=df_test.columns)
+    for pvt, group in df_test.groupby('PVT'):
+                df_test_with_totals = pd.concat([df_test_with_totals, group], ignore_index=True)
+
+                total_paiement_om = group['PAIEMENT_OM'].sum()
+                total_paiement_sim = group['PAIEMENT_SIM'].sum()
+                chauffeur = 100000
+                #total_general = group['PAIEMENT_OM'].sum()
+                row_total = {
+                    
+                    'PVT': "TOTAL PVT",
+                    'PAIEMENT_OM': total_paiement_om ,
+                    'PAIEMENT_SIM': total_paiement_sim,
+                    'PAIEMENT CHAUFFEUR' : chauffeur
+                    
+                        }
+                df_test_with_totals = pd.concat([df_test_with_totals, pd.DataFrame([row_total])], ignore_index=True)
+
+
+    st.dataframe(df_test_with_totals)
 
 
 
