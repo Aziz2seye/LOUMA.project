@@ -114,7 +114,7 @@ if file_sim and file_om:
                         }
         df_with_totals = pd.concat([df_with_totals, pd.DataFrame([row_total])], ignore_index=True)
     
-    st.dataframe(df_with_totals)
+    st.dataframe(df_with_totals)  
 
     # Affichage du tableau simplifié
     cols_affichage = ['DRV', 'PVT', 'PRENOM_VENDEUR', 'NOM_VENDEUR','KABBU','REALISATION', 'OBJECTIF', "TAUX D'ATTEINTE", 'SI 100% ATTEINT', 'PAIEMENT', 'PAIEMENT CHAUFFEUR', 'TOTAL SIM+CHAUFFEUR']
@@ -157,7 +157,7 @@ if file_sim and file_om:
     # 👉 Ajouter les lignes de total après chaque DRV
     df_with_totals_om = pd.DataFrame(columns=df_filtre_om.columns)
 
-    for drv, group in df_with_totals_om.groupby('DRV'):
+    for drv, group in df_filtre_om.groupby('DRV'):
                 df_with_totals_om = pd.concat([df_with_totals_om, group], ignore_index=True)
 
                 total_paiement_om = group['PAIEMENT_OM'].sum()
