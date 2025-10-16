@@ -18,7 +18,7 @@ if uploaded_file:
                 sheet_names = xls.sheet_names
                 selected_sheet = st.selectbox("🗂️ Choisir la feuille à exploiter :", options=sheet_names)
                 df = pd.read_excel(uploaded_file, sheet_name=selected_sheet)
-
+            
             # ✅ Charger logins depuis fichier VTO
             vto_df = load_vto()
             logins_concernes = vto_df["LOGIN"].astype(str).tolist()

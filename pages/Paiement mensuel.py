@@ -55,7 +55,7 @@ if file_sim and file_om:
     df = df_sim.copy()
     # ✅ Nettoyage des colonnes
     df = df.rename(columns={
-    'MSISDN': 'REALISATION',
+    'MSISDN': 'REALISATION_SIM',
     'ACCUEIL_VENDEUR': 'PVT',
     'LOGIN_VENDEUR': 'LOGIN',
     'AGENCE_VENDEUR': 'DRV'
@@ -65,7 +65,7 @@ if file_sim and file_om:
     df['DRV'] = df['DRV'].astype(str).str.strip().str.upper()
     df['NOM_VENDEUR'] = df['NOM_VENDEUR'].astype(str).str.strip().str.upper()
     df['PRENOM_VENDEUR'] = df['PRENOM_VENDEUR'].astype(str).str.strip().str.upper()
-
+    
     # 🔍 Filtrage
     df_filtre = df[df['LOGIN'].isin(logins_concernes) & df['ETAT_IDENTIFICATION'].astype(str).isin(details)]
 
@@ -73,7 +73,7 @@ if file_sim and file_om:
     st.write("📊 Ventes LOUMA mensuels :", df_filtre.shape[0], "lignes")
     st.dataframe(df_filtre)
     
-     # Remplacer DRV
+    # Remplacer DRV
     df_filtre["DRV"] = df_filtre["DRV"].replace({ 
                 "DV-DRV2_DIRECTION REGIONALE DES VENTES DAKAR 2": "DR2",
                 "DV-DRVS_DIRECTION REGIONALE DES VENTES SUD": "DR SUD",
@@ -84,11 +84,11 @@ if file_sim and file_om:
             
     #définir les colonnes pour les paiements
     df_filtre = df_filtre.groupby(['DRV', 'PVT', 'PRENOM_VENDEUR', 'NOM_VENDEUR', 'LOGIN']).agg({
-            'REALISATION': 'count'}).reset_index().sort_values(['DRV', 'PVT'])
-    df_filtre['OBJECTIF'] = 240
-    df_filtre["TAUX D'ATTEINTE"] = (df_filtre['REALISATION'] / df_filtre['OBJECTIF']).apply(lambda x: f"{round(x*100)}%")
-    df_filtre['SI 100% ATTEINT'] = 75000
-    df_filtre['PAIEMENT_SIM'] = df_filtre['REALISATION'].apply(lambda x: 75000 if x >= 240 else round((x/240)*75000))
+            'REALISATION_SIM': 'count'}).reset_index().sort_values(['DRV', 'PVT'])
+    df_filtre['OBJECTIF SIM'] = 240
+    df_filtre["TAUX D'ATTEINTE SIM"] = (df_filtre['REALISATION_SIM'] / df_filtre['OBJECTIF SIM']).apply(lambda x: f"{round(x*100)}%")
+    df_filtre['SI 100% ATTEINT SIM'] = 75000
+    df_filtre['PAIEMENT_SIM'] = df_filtre['REALISATION_SIM'].apply(lambda x: 75000 if x >= 240 else round((x/240)*75000))
             #df_filtre['PAIEMENT CHAUFFEUR'] = 100000
             #df_filtre['PAIEMENT CHAUFFEUR'] = df_filtre['PAIEMENT CHAUFFEUR'].mask(df_filtre['DRV'].duplicated())
             #df_filtre['TOTAL SIM+CHAUFFEUR'] = None
@@ -127,7 +127,7 @@ if file_sim and file_om:
 
     # ✅ Nettoyage des colonnes
     
-    df_om['LOGIN'] = df['LOGIN'].astype(str)
+    df_om['LOGIN'] = df_om['LOGIN'].astype(str)
             
     df_om['NOM_VENDEUR'] = df_om['NOM_VENDEUR'].astype(str).str.strip().str.upper()
     df_om['PRENOM_VENDEUR'] = df_om['PRENOM_VENDEUR'].astype(str).str.strip().str.upper()
@@ -141,24 +141,27 @@ if file_sim and file_om:
 
             
     #Définition des colonnes pour les paiements      
-    df_filtre_om['OBJECTIF'] = 120
-    df_filtre_om["TAUX D'ATTEINTE"] = (df_filtre_om['REALISATION_OM'] / df_filtre_om['OBJECTIF']).apply(lambda x: f"{round(x*100)}%")
-    df_filtre_om['SI 100% ATTEINT'] = 25000
+    df_filtre_om['OBJECTIF OM'] = 120
+    df_filtre_om["TAUX D'ATTEINTE OM"] = (df_filtre_om['REALISATION_OM'] / df_filtre_om['OBJECTIF OM']).apply(lambda x: f"{round(x*100)}%")
+    df_filtre_om['SI 100% ATTEINT OM'] = 25000
     df_filtre_om['PAIEMENT_OM'] = df_filtre_om['REALISATION_OM'].apply(lambda x: 25000 if x >= 120 else round((x/120)*25000))
     #df_filtre['PAIEMENT CHAUFFEUR'] = 150000
            
+    # Fusionner pour ajouter la colonne KABBU
+    df_filtre_om = df_filtre_om.merge(vto_df[["LOGIN", "DRV", "PVT"]], how="left")
+
     # 👉 Ajouter les lignes de total après chaque DRV
     df_with_totals_om = pd.DataFrame(columns=df_filtre_om.columns)
 
     for drv, group in df_with_totals_om.groupby('DRV'):
                 df_with_totals_om = pd.concat([df_with_totals_om, group], ignore_index=True)
 
-                total_paiement = group['PAIEMENT_OM'].sum()
+                total_paiement_om = group['PAIEMENT_OM'].sum()
                 total_general = group['PAIEMENT_OM'].sum()
                 row_total = {
                     'DRV': f"{drv}",
                     'PVT': "TOTAL PVT",
-                    'PAIEMENT_OM': total_paiement ,
+                    'PAIEMENT_OM': total_paiement_om ,
                     
                         }
                 df_with_totals_om = pd.concat([df_with_totals_om, pd.DataFrame([row_total])], ignore_index=True)
@@ -179,7 +182,8 @@ if file_sim and file_om:
         on=["LOGIN", "PRENOM_VENDEUR", "NOM_VENDEUR"],
         how="outer"
     )
-
+ 
+    st.dataframe(df_final)
 
     # === Calcul des paiements
     
@@ -188,14 +192,14 @@ if file_sim and file_om:
     df_final["TOTAL_PAIEMENT"] = df_final["PAIEMENT_SIM"].fillna(0) + df_final["PAIEMENT_OM"].fillna(0) + df_final["PAIEMENT_CHAUFFEUR"]
 
     # ✅ Nettoyage des colonnes
-    df = df.rename(columns={
-    'REALISATION': 'REALISATION_SIM'})
+    #df = df.rename(columns={
+    #'REALISATION': 'REALISATION_SIM'})
 
     # Réorganisation des colonnes
     cols_final = [
         "DRV", "PVT", "PRENOM_VENDEUR", "NOM_VENDEUR", "KABBU",
-        "REALISATION_SIM", "OBJECTIF_SIM", "TAUX_ATTEINTE_SIM", "SI_100_SIM", "PAIEMENT_SIM",
-        "REALISATION_OM", "OBJECTIF_OM", "TAUX_ATTEINTE_OM", "SI_100_OM", "PAIEMENT_OM",
+        "REALISATION_SIM", "OBJECTIF_SIM", "TAUX D'ATTEINTE SIM", "SI 100% ATTEINT SIM", "PAIEMENT_SIM",
+        "REALISATION OM", "OBJECTIF OM", "TAUX D'ATTEINTE OM", "SI 100% ATTEINT OM", "PAIEMENT_OM",
         "PAIEMENT_CHAUFFEUR", "TOTAL_PAIEMENT"
     ]
     df_final = df_final[cols_final]
