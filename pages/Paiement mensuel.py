@@ -149,7 +149,9 @@ if file_sim and file_om:
            
     # Fusionner pour ajouter la colonne KABBU
     df_filtre_om = df_filtre_om.merge(vto_df[["LOGIN", "DRV", "PVT"]], how="left")
+    st.dataframe(df_filtre_om)
 
+    
     # 👉 Ajouter les lignes de total après chaque DRV
     df_with_totals_om = pd.DataFrame(columns=df_filtre_om.columns)
 
