@@ -224,13 +224,13 @@ if file_sim and file_om:
     df_test_with_totals = pd.DataFrame(columns=df_test.columns)
 
     for drv, group_drv in df_test.groupby('DRV'):
-        for pvt, group_pvt in df_test.groupby('PVT'):
+        for pvt, group_pvt in group_drv.groupby('PVT'):
                     df_test_with_totals = pd.concat([df_test_with_totals, group_pvt], ignore_index=True)
 
                     total_paiement_om = group['PAIEMENT_OM'].sum()
                     total_paiement_sim = group['PAIEMENT_SIM'].sum()
                     chauffeur = 100000
-                    total = chauffeur + total_paiement_om + total_paiement_sim
+                    
                     #total_general = group['PAIEMENT_OM'].sum()
                     row_total = {
                         
@@ -243,17 +243,17 @@ if file_sim and file_om:
                             }
                     df_test_with_totals = pd.concat([df_test_with_totals, pd.DataFrame([row_total])], ignore_index=True)
 
-        total_paiement_om = group_drv['PAIEMENT_OM'].sum()
-        total_paiement_sim = group_drv['PAIEMENT_SIM'].sum()
-        chauffeur = 200000
-        total = chauffeur + total_paiement_om + total_paiement_sim
+        total_paiement_om_drv = group_drv['PAIEMENT_OM'].sum()
+        total_paiement_sim_drv = group_drv['PAIEMENT_SIM'].sum()
+        chauffeur_drv = 200000
+        total = chauffeur + total_paiement_om_drv + total_paiement_sim_drv
         #total_general = group['PAIEMENT_OM'].sum()
         row_total_drv = {
                         
                         'PVT': "TOTAL",
-                        'PAIEMENT_OM': total_paiement_om ,
-                        'PAIEMENT_SIM': total_paiement_sim,
-                        'PAIEMENT CHAUFFEUR' : chauffeur,
+                        'PAIEMENT_OM': total_paiement_om_drv ,
+                        'PAIEMENT_SIM': total_paiement_sim_drv,
+                        'PAIEMENT CHAUFFEUR' : chauffeur_drv,
                         'PAIEMENT SIM + OM + CHAUFFEUR' : total
                             
                             }
