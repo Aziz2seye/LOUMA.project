@@ -266,28 +266,10 @@ if file_sim and file_om:
 
     # === Calcul des paiements
     
-    # Chauffeur
-    df_final["PAIEMENT_CHAUFFEUR"] = 100000
-    df_final["TOTAL_PAIEMENT"] = df_final["PAIEMENT_SIM"].fillna(0) + df_final["PAIEMENT_OM"].fillna(0) + df_final["PAIEMENT_CHAUFFEUR"]
-
-    # ✅ Nettoyage des colonnes
-    #df = df.rename(columns={
-    #'REALISATION': 'REALISATION_SIM'})
-
-    # Réorganisation des colonnes
-    cols_final = [
-        "DRV", "PVT", "PRENOM_VENDEUR", "NOM_VENDEUR", "KABBU",
-        "REALISATION_SIM", "OBJECTIF_SIM", "TAUX D'ATTEINTE SIM", "SI 100% ATTEINT SIM", "PAIEMENT_SIM",
-        "REALISATION OM", "OBJECTIF OM", "TAUX D'ATTEINTE OM", "SI 100% ATTEINT OM", "PAIEMENT_OM",
-        "PAIEMENT_CHAUFFEUR", "TOTAL_PAIEMENT"
-    ]
-    df_final = df_final[cols_final]
-
-    st.success("✅ Fusion et calculs terminés !")
-    st.dataframe(df_final)
+    
 
     # === Résumé par PVT
-    df_par_pvt = df_final.groupby(["DRV", "PVT"]).agg({
+    df_par_pvt = df_test.groupby(["DRV", "PVT"]).agg({
         "TOTAL_PAIEMENT": "sum"
     }).reset_index()
 
@@ -306,7 +288,7 @@ if file_sim and file_om:
     # === Export Excel
     buffer = BytesIO()
     with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
-        df_final.to_excel(writer, sheet_name="Détails Paiement", index=False)
+        df_test_with_totals.to_excel(writer, sheet_name="Détails Paiement", index=False)
         df_par_pvt.to_excel(writer, sheet_name="Paiement par PVT", index=False)
     buffer.seek(0)
 
