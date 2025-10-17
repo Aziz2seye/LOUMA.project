@@ -267,7 +267,7 @@ if file_sim and file_om:
     # === Calcul des paiements
     
     #---
-    df_test["MONTANT"] = df_test["PAIEMENT SIM"] + df_test["PAIEMENT OM"]
+    df_test["MONTANT"] = df_test["PAIEMENT_SIM"] + df_test["PAIEMENT_OM"]
 
     # === Résumé par PVT
     df_par_pvt = df_test.groupby(["DRV", "PVT"]).agg({ 'MONTANT':'sum' }).reset_index()
