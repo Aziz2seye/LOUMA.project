@@ -269,9 +269,7 @@ if file_sim and file_om:
     
 
     # === Résumé par PVT
-    df_par_pvt = df_test.groupby(["DRV", "PVT"]).agg({
-        "TOTAL_PAIEMENT": "sum"
-    }).reset_index()
+    df_par_pvt = df_test.groupby(["DRV", "PVT"]).agg({ "TOTAL_PAIEMENT":"sum" }).reset_index()
 
     df_par_pvt["GAIN PVT (5%)"] = df_par_pvt["TOTAL_PAIEMENT"] * 0.05
     df_par_pvt["TOTAL GENERAL"] = df_par_pvt["TOTAL_PAIEMENT"] + df_par_pvt["GAIN PVT (5%)"]
