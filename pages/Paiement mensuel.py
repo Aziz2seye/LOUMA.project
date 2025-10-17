@@ -266,19 +266,20 @@ if file_sim and file_om:
 
     # === Calcul des paiements
     
-    
+    #---
+    df_test["MONTANT"] = df_test["PAIEMENT SIM"] + df_test["PAIEMENT OM"]
 
     # === Résumé par PVT
-    df_par_pvt = df_test.groupby(["DRV", "PVT"]).agg({ "TOTAL_PAIEMENT":"sum" }).reset_index()
-
-    df_par_pvt["GAIN PVT (5%)"] = df_par_pvt["TOTAL_PAIEMENT"] * 0.05
-    df_par_pvt["TOTAL GENERAL"] = df_par_pvt["TOTAL_PAIEMENT"] + df_par_pvt["GAIN PVT (5%)"]
+    df_par_pvt = df_test.groupby(["DRV", "PVT"]).agg({ 'MONTANT':'sum' }).reset_index()
+    df_par_pvt["MONTANT"] = df_par_pvt["MONTANT"] + 100000
+    df_par_pvt["GAIN PVT (5%)"] = df_par_pvt["MONTANT"] * 0.05
+    df_par_pvt["TOTAL GENERAL"] = df_par_pvt["MONTANT"] + df_par_pvt["GAIN PVT (5%)"]
 
     # Ajouter ND PARTENAIRE (ex : numéro de téléphone du PVT)
     df_par_pvt["ND PARTENAIRE"] = ""  # 👉 tu pourras l'alimenter depuis ton fichier VTO
 
     # Réorganisation colonnes
-    df_par_pvt = df_par_pvt[["DRV", "PVT", "ND PARTENAIRE", "TOTAL_PAIEMENT", "GAIN PVT (5%)", "TOTAL GENERAL"]]
+    df_par_pvt = df_par_pvt[["DRV", "PVT", "ND PARTENAIRE", "MONTANT", "GAIN PVT (5%)", "TOTAL GENERAL"]]
 
     st.subheader("📊 Résumé par PVT")
     st.dataframe(df_par_pvt)
