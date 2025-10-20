@@ -31,7 +31,8 @@ st.write("Utilisez le menu sur la gauche pour naviguer entre les pages :")
 
 st.markdown("""
 - 🧍 **Gestion des VTO** : Ajouter, modifier ou supprimer les VTO
-- 📊 **Reporting** : Choisir entre reporting journalier, hebdomadaire ou mensuel
+- 📑 **Gestion des PVT** : Ajouter, modifier ou supprimer les PVT            
+- 📊 **Reporting Daily & Weekly** : Choisir entre reporting journalier ou hebdomadaire 
 - 💰 **Reporting Mensuel** : Accéder aux fonctionnalités de reporting et de paiement du mois
 """)
 

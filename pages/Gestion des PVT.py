@@ -22,7 +22,7 @@ from utils import load_pvt
 # ====================
 import streamlit as st
 
-st.set_page_config(page_title="🧍 Gestion des PVT", layout="wide")
+st.set_page_config(page_title="📑 Gestion des PVT", layout="wide")
 
 st.title("🧍 Gestion des PVT")
 
