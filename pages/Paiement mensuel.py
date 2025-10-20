@@ -230,7 +230,7 @@ if file_sim and file_om:
                     total_paiement_om = group_pvt['PAIEMENT_OM'].sum()
                     total_paiement_sim = group_pvt['PAIEMENT_SIM'].sum()
                     chauffeur = 100000
-                    total_pvt = chauffeur + total_paiement_om + total_paiement_sim
+                    total_pvt = total_paiement_sim + chauffeur + total_paiement_om 
 
                     #total_general = group['PAIEMENT_OM'].sum()
                     row_total = {
