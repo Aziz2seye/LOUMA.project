@@ -284,10 +284,10 @@ if file_sim and file_om:
 
     montant_sum = df_par_pvt['MONTANT'].sum()
     gain_sum = df_par_pvt['GAIN PVT (5%)'].sum()
-    total_sum = df_par_pvt['TOTAL GENERAL'].apply(lambda x: float(x.strip('%'))).mean()
+    total_sum = df_par_pvt['TOTAL GENERAL'].sum()
 
     df_par_pvt.loc['TOTAL'] = ['TOTAL', '', '', montant_sum, gain_sum, total_sum]
-
+    
     st.subheader("📊 Résumé par PVT")
     st.dataframe(df_par_pvt)
 
