@@ -281,7 +281,12 @@ if file_sim and file_om:
     df_par_pvt["ND PARTENAIRE"] = ""  # 👉 tu pourras l'alimenter depuis ton fichier VTO
 
     pvt_df = load_pvt()
-    df_par_pvt = df_par_pvt.merge(pvt_df["CONTACT"], how="left")
+    df_par_pvt = df_par_pvt.merge(
+        pvt_df[["PVT", "CONTACT"]],
+        on="PVT",
+        how="left"
+     )
+
 
 
     # Réorganisation colonnes
