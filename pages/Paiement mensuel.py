@@ -4,6 +4,7 @@ from io import BytesIO
 from openpyxl import load_workbook
 import tempfile
 from utils import load_vto 
+from utils import load_pvt
 import streamlit as st
 import pandas as pd
 from io import BytesIO
@@ -279,15 +280,19 @@ if file_sim and file_om:
     # Ajouter ND PARTENAIRE (ex : numéro de téléphone du PVT)
     df_par_pvt["ND PARTENAIRE"] = ""  # 👉 tu pourras l'alimenter depuis ton fichier VTO
 
+    pvt_df = load_pvt()
+    df_par_pvt = df_par_pvt.merge(pvt_df["CONTACT"], how="left")
+
+
     # Réorganisation colonnes
-    df_par_pvt = df_par_pvt[["DRV", "PVT", "ND PARTENAIRE", "MONTANT", "GAIN PVT (5%)", "TOTAL GENERAL"]]
+    df_par_pvt = df_par_pvt[["DRV", "PVT", "ND PARTENAIRE", "CONTACT", "MONTANT", "GAIN PVT (5%)", "TOTAL GENERAL"]]
 
     montant_sum = df_par_pvt['MONTANT'].sum()
     gain_sum = df_par_pvt['GAIN PVT (5%)'].sum()
     total_sum = df_par_pvt['TOTAL GENERAL'].sum()
 
     df_par_pvt.loc['TOTAL'] = ['TOTAL', '', '', montant_sum, gain_sum, total_sum]
-    
+
     st.subheader("📊 Résumé par PVT")
     st.dataframe(df_par_pvt)
 
