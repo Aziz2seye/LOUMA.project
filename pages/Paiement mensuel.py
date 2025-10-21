@@ -282,6 +282,12 @@ if file_sim and file_om:
     # Réorganisation colonnes
     df_par_pvt = df_par_pvt[["DRV", "PVT", "ND PARTENAIRE", "MONTANT", "GAIN PVT (5%)", "TOTAL GENERAL"]]
 
+    montant_sum = df_par_pvt['MONTANT'].sum()
+    gain_sum = df_par_pvt['GAIN PVT (5%)'].sum()
+    total_sum = df_par_pvt['TOTAL GENERAL'].apply(lambda x: float(x.strip('%'))).mean()
+
+    df_par_pvt.loc['TOTAL'] = ['TOTAL', '', '', montant_sum, gain_sum, total_sum]
+
     st.subheader("📊 Résumé par PVT")
     st.dataframe(df_par_pvt)
 
