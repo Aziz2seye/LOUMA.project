@@ -229,6 +229,10 @@ if file_sim and file_om:
                     df_test_with_totals = pd.concat([df_test_with_totals, group_pvt], ignore_index=True)
 
                     total_paiement_om = group_pvt['PAIEMENT_OM'].sum()
+                    total_sim = group_pvt['REALISATION_SIM'].sum()
+                    total_obj = group_pvt['OBJECTIF SIM'].sum()
+                    si_total_atteint = group_pvt['SI 100% ATTEINT SIM'].sum() 
+                    tr_mean = group_pvt["TAUX D'ATTEINTE SIM"].apply(lambda x: float(x.strip('%'))).mean()
                     total_paiement_sim = group_pvt['PAIEMENT_SIM'].sum()
                     chauffeur = 100000
                     total_pvt = total_paiement_sim + chauffeur + total_paiement_om 
@@ -237,6 +241,10 @@ if file_sim and file_om:
                     row_total = {
                         
                         'PVT': "TOTAL PVT",
+                        'REALISATION_SIM': total_sim,
+                        'OBJECTIF SIM': total_obj,
+                        "TAUX D'ATTEINTE SIM": tr_mean,
+                        'SI 100% ATTEINT SIM': si_total_atteint,
                         'PAIEMENT_OM': total_paiement_om ,
                         'PAIEMENT_SIM': total_paiement_sim,
                         'PAIEMENT CHAUFFEUR' : chauffeur,
