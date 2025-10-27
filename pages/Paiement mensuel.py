@@ -145,7 +145,8 @@ if file_sim and file_om:
             
     #Définition des colonnes pour les paiements      
     df_filtre_om['OBJECTIF OM'] = 120
-    df_filtre_om["TAUX D'ATTEINTE OM"] = (df_filtre_om['REALISATION_OM'] / df_filtre_om['OBJECTIF OM']).apply(lambda x: f"{round(x*100)}%")
+    df_filtre_om["TAUX D'ATTEINTE OM"] = df_filtre_om["TAUX D'ATTEINTE OM"] = ((df_filtre_om['REALISATION_OM'] / df_filtre_om['OBJECTIF OM']).fillna(0).apply(lambda x: f"{round(x*100)}%"))
+
     df_filtre_om['SI 100% ATTEINT OM'] = 25000
     df_filtre_om['PAIEMENT_OM'] = df_filtre_om['REALISATION_OM'].apply(lambda x: 25000 if x >= 120 else round((x/120)*25000))
     #df_filtre['PAIEMENT CHAUFFEUR'] = 150000
