@@ -237,7 +237,8 @@ if file_sim and file_om:
                     total_om = group_pvt['REALISATION_OM'].sum()
                     total_obj_om = group_pvt['OBJECTIF OM'].sum()
                     si_total_atteint_om = group_pvt['SI 100% ATTEINT OM'].sum() 
-                    tr_mean_om = group_pvt["TAUX D'ATTEINTE OM"].apply(lambda x: float(x.strip('%'))).mean()
+                    tr_mean_om = (group_pvt["TAUX D'ATTEINTE OM"].apply(lambda x: float(str(x).replace('%', '').strip()) if pd.notnull(x) else 0).mean())
+                    #tr_mean_om = group_pvt["TAUX D'ATTEINTE OM"].apply(lambda x: float(x.strip('%'))).mean()
                     total_paiement_sim = group_pvt['PAIEMENT_SIM'].sum()
                     chauffeur = 100000
                     total_pvt = total_paiement_sim + chauffeur + total_paiement_om 
