@@ -101,6 +101,8 @@ if st.session_state.get("reporting_type") == "journalier":
             "DV-DRVE_DIRECTION REGIONALE DES VENTES EST": "DRE"
         })
 
+        
+
         # 🧾 Export Excel
         temp_file = tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False)
         with pd.ExcelWriter(temp_file.name, engine='openpyxl') as writer:
@@ -197,6 +199,13 @@ if st.session_state.get("reporting_type") == "hebdomadaire":
             "DV-DRVN_DIRECTION REGIONALE DES VENTES NORD": "DRN",
             "DV-DRVC_DIRECTION REGIONALE DES VENTES CENTRE": "DRC",
             "DV-DRVE_DIRECTION REGIONALE DES VENTES EST": "DRE"
+        })
+
+        df_summary_display = df_summary_display.rename(columns={
+            'TOTAL_SIM':'REALISATIONS'
+        })
+        df_summary2 = df_summary2.rename(columns={
+            'TOTAL_SIM':'REALISATIONS'
         })
 
         # 🧾 Export Excel
