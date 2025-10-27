@@ -233,6 +233,10 @@ if file_sim and file_om:
                     total_obj = group_pvt['OBJECTIF SIM'].sum()
                     si_total_atteint = group_pvt['SI 100% ATTEINT SIM'].sum() 
                     tr_mean = group_pvt["TAUX D'ATTEINTE SIM"].apply(lambda x: float(x.strip('%'))).mean()
+                    total_om = group_pvt['REALISATION_OM'].sum()
+                    total_obj_om = group_pvt['OBJECTIF OM'].sum()
+                    si_total_atteint_om = group_pvt['SI 100% ATTEINT OM'].sum() 
+                    tr_mean_om = group_pvt["TAUX D'ATTEINTE OM"].apply(lambda x: float(x.strip('%'))).mean()
                     total_paiement_sim = group_pvt['PAIEMENT_SIM'].sum()
                     chauffeur = 100000
                     total_pvt = total_paiement_sim + chauffeur + total_paiement_om 
@@ -243,8 +247,12 @@ if file_sim and file_om:
                         'PVT': "TOTAL PVT",
                         'REALISATION_SIM': total_sim,
                         'OBJECTIF SIM': total_obj,
-                        "TAUX D'ATTEINTE SIM": tr_mean,
+                        "TAUX D'ATTEINTE SIM": f'{tr_mean:.1f}%',
                         'SI 100% ATTEINT SIM': si_total_atteint,
+                        'REALISATION_OM': total_om,
+                        'OBJECTIF OM': total_obj_om,
+                        "TAUX D'ATTEINTE OM": f'{tr_mean_om:.1f}%',
+                        'SI 100% ATTEINT OM': si_total_atteint_om,
                         'PAIEMENT_OM': total_paiement_om ,
                         'PAIEMENT_SIM': total_paiement_sim,
                         'PAIEMENT CHAUFFEUR' : chauffeur,
