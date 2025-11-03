@@ -142,6 +142,9 @@ if file_sim and file_om:
     st.write("📊 Ventes LOUMA mensuels :", df_filtre_om.shape[0], "lignes")
     st.dataframe(df_filtre_om)
 
+    # Remplacer les NaN par 0
+    df_filtre_om = df_filtre_om.fillna(0)
+
             
     #Définition des colonnes pour les paiements      
     df_filtre_om['OBJECTIF OM'] = 120
@@ -229,7 +232,7 @@ if file_sim and file_om:
         for pvt, group_pvt in group_drv.groupby('PVT'):
                     df_test_with_totals = pd.concat([df_test_with_totals, group_pvt], ignore_index=True)
 
-                    total_paiement_om = group_pvt['PAIEMENT_OM'].sum()
+                        total_paiement_om = group_pvt['PAIEMENT_OM'].sum()
                     total_sim = group_pvt['REALISATION_SIM'].sum()
                     total_obj = group_pvt['OBJECTIF SIM'].sum()
                     si_total_atteint = group_pvt['SI 100% ATTEINT SIM'].sum() 
