@@ -232,7 +232,7 @@ if file_sim and file_om:
         for pvt, group_pvt in group_drv.groupby('PVT'):
                     df_test_with_totals = pd.concat([df_test_with_totals, group_pvt], ignore_index=True)
 
-                        total_paiement_om = group_pvt['PAIEMENT_OM'].sum()
+                    total_paiement_om = group_pvt['PAIEMENT_OM'].sum()
                     total_sim = group_pvt['REALISATION_SIM'].sum()
                     total_obj = group_pvt['OBJECTIF SIM'].sum()
                     si_total_atteint = group_pvt['SI 100% ATTEINT SIM'].sum() 
