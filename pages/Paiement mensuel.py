@@ -216,6 +216,10 @@ if file_sim and file_om:
     st.dataframe(df_final_with_totals)
 
     #--------------------------------
+    #gerer la casse d'aboordd
+    df_filtre['LOGIN'] = df_filtre['LOGIN'].astype(str).str.strip().str.upper()
+    df_filtre_om['LOGIN'] = df_filtre_om['LOGIN'].astype(str).str.strip().str.upper()
+
     df_test = pd.merge(
         df_filtre,
         df_filtre_om[["LOGIN", "PRENOM_VENDEUR", "NOM_VENDEUR", "REALISATION_OM", "OBJECTIF OM","TAUX D'ATTEINTE OM", "SI 100% ATTEINT OM", "PAIEMENT_OM"]],
