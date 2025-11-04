@@ -57,7 +57,7 @@ if file_sim and file_om:
     df = df_sim.copy()
     # ✅ Nettoyage des colonnes
 
-    df_sim['LOGIN'] = df_sim['LOGIN'].astype(str).str.strip().str.lower()
+    df_sim['LOGIN_VENDEUR'] = df_sim['LOGIN_VENDEUR'].astype(str).str.strip().str.lower()
 
     df = df.rename(columns={
     'MSISDN': 'REALISATION_SIM',
