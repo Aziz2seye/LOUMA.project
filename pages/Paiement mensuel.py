@@ -54,11 +54,12 @@ if file_sim and file_om:
     vto_df['LOGIN'] = vto_df['LOGIN'].astype(str).str.strip().str.lower()
     logins_concernes = vto_df["LOGIN"].astype(str).tolist()
     details = ["En Cours-Identification", "Identifie", "Identifie Photo"]
-    df = df_sim.copy()
+    
     # ✅ Nettoyage des colonnes
 
     df_sim['LOGIN_VENDEUR'] = df_sim['LOGIN_VENDEUR'].astype(str).str.strip().str.lower()
-
+    df = df_sim.copy()
+    
     df = df.rename(columns={
     'MSISDN': 'REALISATION_SIM',
     'ACCUEIL_VENDEUR': 'PVT',
