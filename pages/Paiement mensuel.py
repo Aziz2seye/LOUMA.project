@@ -51,10 +51,14 @@ if file_sim and file_om:
     #Harmonisation colonnes SIM
     # ✅ Charger logins depuis fichier VTO
     vto_df = load_vto()
+    vto_df['LOGIN'] = vto_df['LOGIN'].astype(str).str.strip().str.lower()
     logins_concernes = vto_df["LOGIN"].astype(str).tolist()
     details = ["En Cours-Identification", "Identifie", "Identifie Photo"]
     df = df_sim.copy()
     # ✅ Nettoyage des colonnes
+
+    df_sim['LOGIN'] = df_sim['LOGIN'].astype(str).str.strip().str.lower()
+
     df = df.rename(columns={
     'MSISDN': 'REALISATION_SIM',
     'ACCUEIL_VENDEUR': 'PVT',
@@ -125,12 +129,13 @@ if file_sim and file_om:
     # Harmonisation colonnes OM
     # ✅ Charger logins depuis fichier VTO
     vto_df = load_vto()
+    vto_df['LOGIN'] = vto_df['LOGIN'].astype(str).str.strip().str.lower()
     logins_concernes = vto_df["LOGIN"].astype(str).tolist()
     details = ["En Cours-Identification", "Identifie", "Identifie Photo"]
 
     # ✅ Nettoyage des colonnes
     
-    df_om['LOGIN'] = df_om['LOGIN'].astype(str)
+    df_om['LOGIN'] = df_om['LOGIN'].astype(str).str.strip().str.lower()
             
     df_om['NOM_VENDEUR'] = df_om['NOM_VENDEUR'].astype(str).str.strip().str.upper()
     df_om['PRENOM_VENDEUR'] = df_om['PRENOM_VENDEUR'].astype(str).str.strip().str.upper()
@@ -217,8 +222,8 @@ if file_sim and file_om:
 
     #--------------------------------
     #gerer la casse d'aboordd
-    df_filtre['LOGIN'] = df_filtre['LOGIN'].astype(str).str.strip().str.upper()
-    df_filtre_om['LOGIN'] = df_filtre_om['LOGIN'].astype(str).str.strip().str.upper()
+    #df_filtre['LOGIN'] = df_filtre['LOGIN'].astype(str).str.strip().str.upper()
+    #df_filtre_om['LOGIN'] = df_filtre_om['LOGIN'].astype(str).str.strip().str.upper()
 
     df_test = pd.merge(
         df_filtre,
