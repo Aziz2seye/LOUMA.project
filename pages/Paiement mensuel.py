@@ -188,7 +188,7 @@ if file_sim and file_om:
     df_final = pd.merge(
         df_with_totals,
         df_with_totals_om[["LOGIN", "PRENOM_VENDEUR", "NOM_VENDEUR", "REALISATION_OM", "OBJECTIF OM","TAUX D'ATTEINTE OM", "SI 100% ATTEINT OM", "PAIEMENT_OM"]],
-        on=["LOGIN", "PRENOM_VENDEUR", "NOM_VENDEUR"],
+        on=["LOGIN"],
         how="outer"
     )
  
@@ -311,7 +311,7 @@ if file_sim and file_om:
 
 
     # Réorganisation colonnes
-    df_par_pvt = df_par_pvt[["DRV", "PVT", "ND PARTENAIRE", "CONTACT", "MONTANT", "GAIN PVT (5%)", "TOTAL GENERAL"]]
+    df_par_pvt = df_par_pvt[["DRV", "PVT", "CONTACT", "MONTANT", "GAIN PVT (5%)", "TOTAL GENERAL"]]
 
     montant_sum = df_par_pvt['MONTANT'].sum()
     gain_sum = df_par_pvt['GAIN PVT (5%)'].sum()
