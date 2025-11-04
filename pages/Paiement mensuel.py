@@ -282,6 +282,13 @@ if file_sim and file_om:
                             }
         df_test_with_totals = pd.concat([df_test_with_totals, pd.DataFrame([row_total_drv])], ignore_index=True)
 
+    df_test_with_totals = df_test_with_totals.rename(columns={
+    'PRENOM_VENDEUR_x': 'PRENOM_VENDEUR',
+    'NOM_VENDEUR_x': 'NOM_VENDEUR'
+    
+              })
+
+    df_test_with_totals.drop(['PRENOM_VENDEUR_y', 'NOM_VENDEUR_y'], axis=1, inplace=True)
     st.dataframe(df_test_with_totals)
 
 
