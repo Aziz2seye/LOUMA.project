@@ -219,7 +219,7 @@ if file_sim and file_om:
     df_test = pd.merge(
         df_filtre,
         df_filtre_om[["LOGIN", "PRENOM_VENDEUR", "NOM_VENDEUR", "REALISATION_OM", "OBJECTIF OM","TAUX D'ATTEINTE OM", "SI 100% ATTEINT OM", "PAIEMENT_OM"]],
-        on=["LOGIN", "PRENOM_VENDEUR", "NOM_VENDEUR"],
+        on=["LOGIN"],
         how="outer"
     )
     df_test["PAIEMENT CHAUFFEUR"] = None
