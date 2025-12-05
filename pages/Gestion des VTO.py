@@ -1,19 +1,17 @@
 import streamlit as st
 import pandas as pd
-import sqlite3
-from contextlib import contextmanager
+import os
 import sys
 from pathlib import Path
 from PIL import Image
 
-# ⚡ Ajouter le dossier parent au path pour importer utils.py
-current_dir = Path(__file__).parent
-parent_dir = current_dir.parent
-sys.path.insert(0, str(parent_dir))
+# ⚡ Ajouter le dossier parent au path pour utils.py
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from utils import load_vto
 
-# =========================
-# Configuration Streamlit
-# =========================
+# ====================
+# Configuration page
+# ====================
 st.set_page_config(page_title="LOUMA - Gestion des VTO", layout="wide", initial_sidebar_state="expanded")
 
 # ====================
@@ -38,7 +36,7 @@ st.markdown("""
         background: linear-gradient(135deg, #fff5f0 0%, #ffffff 50%, #f0f8ff 100%);
     }
 
-    /* Sidebar avec couleurs VERT/BLEU Sonatel comme l'accueil */
+    /* Sidebar avec couleurs VERT/BLEU Sonatel */
     section[data-testid="stSidebar"] {
         background: linear-gradient(180deg, #009CA6 0%, #00A0B0 100%) !important;
         color: white !important;
@@ -49,11 +47,13 @@ st.markdown("""
         color: white !important;
     }
 
-    /* Style pour les dataframes */
-    .stDataFrame {
-        border-radius: 15px;
-        overflow: hidden;
+    /* Conteneurs de tableau */
+    .dataframe-container {
         box-shadow: 0 8px 20px rgba(255, 121, 0, 0.15);
+        border-radius: 15px;
+        padding: 1rem;
+        background: white;
+        margin-bottom: 1.5rem;
         border: 2px solid #FFE5CC;
     }
 
@@ -71,6 +71,41 @@ st.markdown("""
         max-width: 400px;
         margin-left: auto;
         margin-right: auto;
+    }
+
+    /* Tableau personnalisé */
+    .custom-table {
+        width: 100%;
+        border-collapse: collapse;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    .custom-table th {
+        background: linear-gradient(135deg, #009CA6 0%, #00B8C5 100%);
+        color: white;
+        font-weight: 600;
+        padding: 10px;
+        text-align: left;
+        font-size: 0.95rem;
+    }
+
+    .custom-table td {
+        padding: 10px;
+        border-bottom: 1px solid #f0f0f0;
+        font-size: 0.9rem;
+    }
+
+    .custom-table tr:hover {
+        background: rgba(255, 121, 0, 0.1) !important;
+        transform: scale(1.01);
+        transition: all 0.2s ease;
+    }
+
+    .custom-table tr:hover td {
+        color: #333 !important;
+        font-weight: 600;
     }
 
     /* Boutons Streamlit avec style Orange */
@@ -138,16 +173,7 @@ st.markdown("""
         border: none;
     }
 
-    /* Messages d'erreur */
-    .stError {
-        background: linear-gradient(135deg, #FF3B30 0%, #D32F2F 100%);
-        color: white;
-        border-radius: 10px;
-        padding: 1rem;
-        border: none;
-    }
-
-    /* Messages d'info */
+    /* Messages info */
     .stInfo {
         background: linear-gradient(135deg, #009CA6 0%, #00B8C5 100%);
         color: white;
@@ -156,13 +182,14 @@ st.markdown("""
         border: none;
     }
 
-    /* Messages warning */
-    .stWarning {
-        background: linear-gradient(135deg, #FFB84D 0%, #FF9500 100%);
-        color: white;
-        border-radius: 10px;
-        padding: 1rem;
-        border: none;
+    /* Cards pour formulaires */
+    .form-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.2rem;
+        box-shadow: 0 4px 15px rgba(255, 121, 0, 0.1);
+        border: 2px solid #FFE5CC;
+        margin-bottom: 1.5rem;
     }
 
     /* Animations */
@@ -171,7 +198,7 @@ st.markdown("""
         to { opacity: 1; transform: translateY(0); }
     }
 
-    .dataframe-container, .stDataFrame {
+    .dataframe-container, .form-card {
         animation: fadeIn 0.5s ease-out;
     }
 </style>
@@ -180,20 +207,16 @@ st.markdown("""
 # ====================
 # Charger le logo
 # ====================
-logo = None
-logo_paths = [
-    parent_dir / "assets" / "logo sonatel.png",
-    Path("assets") / "logo sonatel.png",
-    Path("../assets/logo sonatel.png"),
-]
-
-for logo_path in logo_paths:
+logo_path = Path(__file__).parent.parent / "assets" / "logo sonatel.png"
+try:
+    logo = Image.open(logo_path)
+except FileNotFoundError:
+    logo = None
     try:
-        if logo_path.exists():
-            logo = Image.open(logo_path)
-            break
+        logo_path_alt = Path("assets") / "logo sonatel.png"
+        logo = Image.open(logo_path_alt)
     except:
-        continue
+        pass
 
 # ====================
 # Header avec logo et titre
@@ -241,185 +264,128 @@ with col_title:
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-# =========================
-# Gestion de connexion SQLite avec Context Manager
-# =========================
-DB_PATH = parent_dir / "louma_vto.db" if parent_dir.exists() else "louma_vto.db"
+# ====================
+# Fichier Excel et fonctions
+# ====================
+DATA_PATH = "vto_list.xlsx"
 
-@contextmanager
-def get_db_connection():
-    """Context manager pour gérer proprement les connexions"""
-    conn = sqlite3.connect(DB_PATH, timeout=10.0)
-    try:
-        yield conn
-    finally:
-        conn.close()
+def save_vto(df):
+    df.to_excel(DATA_PATH, index=False)
 
-# Initialiser la base de données
-def init_db():
-    with get_db_connection() as conn:
-        c = conn.cursor()
-        c.execute("""
-        CREATE TABLE IF NOT EXISTS vto (
-            DRV TEXT,
-            PVT TEXT,
-            login TEXT PRIMARY KEY,
-            prenom TEXT,
-            nom TEXT,
-            KABBU TEXT
-        )
-        """)
-        conn.commit()
+vto_df = load_vto()
 
-init_db()
-
-# =========================
-# Fonctions CRUD
-# =========================
-def get_all_vto():
-    with get_db_connection() as conn:
-        c = conn.cursor()
-        c.execute("SELECT * FROM vto")
-        rows = c.fetchall()
-        if not rows:
-            return pd.DataFrame(columns=["DRV", "PVT", "LOGIN", "PRENOM", "NOM", "KABBU"])
-        return pd.DataFrame(rows, columns=["DRV", "PVT", "LOGIN", "PRENOM", "NOM", "KABBU"])
-
-def add_vto(DRV, PVT, login, prenom, nom, KABBU):
-    try:
-        with get_db_connection() as conn:
-            c = conn.cursor()
-            c.execute(
-                "INSERT INTO vto (DRV, PVT, login, prenom, nom, KABBU) VALUES (?, ?, ?, ?, ?, ?)",
-                (DRV, PVT, login, prenom, nom, KABBU)
-            )
-            conn.commit()
-        return True
-    except sqlite3.IntegrityError:
-        return False
-
-def update_vto(old_login, DRV, PVT, new_login, new_prenom, new_nom, KABBU):
-    try:
-        with get_db_connection() as conn:
-            c = conn.cursor()
-            c.execute("""
-                UPDATE vto SET DRV=?, PVT=?, login=?, prenom=?, nom=?, KABBU=? WHERE login=?
-            """, (DRV, PVT, new_login, new_prenom, new_nom, KABBU, old_login))
-            conn.commit()
-            return c.rowcount > 0
-    except sqlite3.OperationalError as e:
-        st.error(f"Erreur de base de données : {e}")
-        return False
-
-def delete_vto(login):
-    try:
-        with get_db_connection() as conn:
-            c = conn.cursor()
-            c.execute("DELETE FROM vto WHERE login=?", (login,))
-            conn.commit()
-            return c.rowcount > 0
-    except sqlite3.OperationalError as e:
-        st.error(f"Erreur de base de données : {e}")
-        return False
-
-# =========================
-# Affichage de la table
-# =========================
+# ====================
+# Liste des VTO avec style Orange/Cyan
+# ====================
 st.markdown('<div class="section-title">Liste actuelle des VTO</div>', unsafe_allow_html=True)
-vto_df = get_all_vto()
 
-if not vto_df.empty:
-    st.dataframe(
-        vto_df[["DRV", "PVT", "LOGIN", "PRENOM", "NOM", "KABBU"]],
-        use_container_width=True,
-        hide_index=True
-    )
-else:
+if vto_df.empty:
     st.info("📭 Aucun VTO enregistré pour le moment")
+else:
+    def render_vto_table(df):
+        html = '<div class="dataframe-container"><table class="custom-table">'
+        # En-tête
+        html += '<thead><tr><th>DRV</th><th>Prénom</th><th>Nom</th><th>PVT</th><th>Login</th><th>KABBU</th></tr></thead><tbody>'
+        # Lignes avec alternance Orange/Cyan
+        colors = ["#FF7900", "#009CA6"]
+        for i, row in df.iterrows():
+            color = colors[i % 2]
+            html += f'<tr style="background:{color}; color:white; font-weight:500;">'
+            html += f'<td>{row.get("DRV", "N/A")}</td>'
+            html += f'<td>{row.get("Prénom", "N/A")}</td>'
+            html += f'<td>{row.get("Nom", "N/A")}</td>'
+            html += f'<td>{row.get("PVT", "N/A")}</td>'
+            html += f'<td>{row.get("Login", "N/A")}</td>'
+            html += f'<td>{row.get("KABBU", "N/A")}</td>'
+            html += '</tr>'
+        html += '</tbody></table></div>'
+        st.markdown(html, unsafe_allow_html=True)
 
-st.markdown("<br>", unsafe_allow_html=True)
+    render_vto_table(vto_df)
 
-# =========================
+# ====================
 # Ajouter un VTO
-# =========================
+# ====================
 st.markdown('<div class="section-title">Ajouter un nouveau VTO</div>', unsafe_allow_html=True)
-with st.form("form_ajout"):
-    st.markdown("##### Remplissez les informations du nouveau VTO")
+st.markdown('<p style="text-align:center; color:#666; font-size:0.95rem; margin-bottom:1rem;">Remplissez les informations du nouveau VTO</p>', unsafe_allow_html=True)
 
+with st.form("form_ajout_vto"):
     col1, col2, col3 = st.columns(3)
     with col1:
-        DRV = st.text_input("DRV", placeholder="Ex: Dakar")
-        prenom = st.text_input("Prénom", placeholder="Ex: Amadou")
+        drv = st.text_input("DRV", placeholder="Ex: DRV_DAKAR")
+        prenom = st.text_input("Prénom", placeholder="Ex: Moussa")
     with col2:
-        PVT = st.text_input("PVT", placeholder="Ex: PVT001")
-        nom = st.text_input("Nom", placeholder="Ex: Diop")
+        nom = st.text_input("Nom", placeholder="Ex: Sow")
+        pvt = st.text_input("PVT", placeholder="Ex: PVT_001")
     with col3:
-        login = st.text_input("Login", placeholder="Ex: adiop")
-        KABBU = st.text_input("KABBU", placeholder="Ex: KB123")
+        login = st.text_input("Login", placeholder="Ex: msow")
+        kabbu = st.text_input("KABBU", placeholder="Ex: KABBU_123")
 
-    submit = st.form_submit_button("➕ Ajouter le VTO")
-    if submit and login:
-        success = add_vto(DRV, PVT, login, prenom, nom, KABBU)
-        if success:
+    submit_ajout = st.form_submit_button("➕ Ajouter le VTO")
+    if submit_ajout:
+        if all([drv, prenom, nom, pvt, login, kabbu]):
+            new_vto = pd.DataFrame([[drv, prenom, nom, pvt, login, kabbu]],
+                                   columns=["DRV", "Prénom", "Nom", "PVT", "Login", "KABBU"])
+            vto_df = pd.concat([vto_df, new_vto], ignore_index=True)
+            save_vto(vto_df)
             st.success("✅ VTO ajouté avec succès !")
             st.rerun()
         else:
-            st.error("❌ Ce login existe déjà !")
+            st.error("⚠️ Veuillez remplir tous les champs")
 
-st.markdown("<br>", unsafe_allow_html=True)
-
-# =========================
+# ====================
 # Modifier un VTO
-# =========================
+# ====================
 st.markdown('<div class="section-title">Modifier un VTO existant</div>', unsafe_allow_html=True)
+
 if not vto_df.empty:
-    login_to_edit = st.selectbox("Choisir un login à modifier :", vto_df["LOGIN"].unique())
-    vto_to_edit = vto_df[vto_df["LOGIN"] == login_to_edit].iloc[0]
+    # Créer une liste de noms complets pour la sélection
+    vto_names = [f"{row['Prénom']} {row['Nom']} ({row['Login']})" for _, row in vto_df.iterrows()]
+    selected_vto_name = st.selectbox("Choisir un VTO à modifier :", vto_names)
 
-    with st.form("form_modif"):
-        st.markdown("##### Modifiez les informations")
+    # Récupérer l'index du VTO sélectionné
+    selected_index = vto_names.index(selected_vto_name)
+    vto_to_edit = vto_df.iloc[selected_index]
 
+    with st.form("form_modif_vto"):
         col1, col2, col3 = st.columns(3)
         with col1:
-            DRV = st.text_input("DRV", vto_to_edit["DRV"])
-            new_prenom = st.text_input("Nouveau prénom", vto_to_edit["PRENOM"])
+            new_drv = st.text_input("DRV", value=str(vto_to_edit["DRV"]))
+            new_prenom = st.text_input("Prénom", value=str(vto_to_edit["Prénom"]))
         with col2:
-            PVT = st.text_input("PVT", vto_to_edit["PVT"])
-            new_nom = st.text_input("Nouveau nom", vto_to_edit["NOM"])
+            new_nom = st.text_input("Nom", value=str(vto_to_edit["Nom"]))
+            new_pvt = st.text_input("PVT", value=str(vto_to_edit["PVT"]))
         with col3:
-            new_login = st.text_input("Nouveau login", vto_to_edit["LOGIN"])
-            KABBU = st.text_input("KABBU", vto_to_edit["KABBU"])
+            new_login = st.text_input("Login", value=str(vto_to_edit["Login"]))
+            new_kabbu = st.text_input("KABBU", value=str(vto_to_edit["KABBU"]))
 
-        submit_modif = st.form_submit_button("✏ Enregistrer les modifications")
+        submit_modif = st.form_submit_button("💾 Enregistrer les modifications")
         if submit_modif:
-            ok = update_vto(login_to_edit, DRV, PVT, new_login, new_prenom, new_nom, KABBU)
-            if ok:
-                st.success("✏ VTO modifié avec succès !")
-                st.rerun()
-            else:
-                st.error("❌ Erreur lors de la modification.")
+            vto_df.iloc[selected_index] = [new_drv, new_prenom, new_nom, new_pvt, new_login, new_kabbu]
+            save_vto(vto_df)
+            st.success("✏️ VTO modifié avec succès !")
+            st.rerun()
 else:
     st.info("📭 Aucun VTO disponible pour modification")
 
-st.markdown("<br>", unsafe_allow_html=True)
-
-# =========================
+# ====================
 # Supprimer un VTO
-# =========================
+# ====================
 st.markdown('<div class="section-title">Supprimer un VTO</div>', unsafe_allow_html=True)
-if not vto_df.empty:
-    with st.form("form_suppr"):
-        login_to_delete = st.selectbox("Choisir un login à supprimer :", vto_df["LOGIN"])
-        st.warning("⚠ Cette action est irréversible !")
 
-        submit_suppr = st.form_submit_button("🗑 Supprimer définitivement")
+if not vto_df.empty:
+    with st.form("form_suppr_vto"):
+        # Créer une liste de noms complets pour la sélection
+        vto_names_delete = [f"{row['Prénom']} {row['Nom']} ({row['Login']})" for _, row in vto_df.iterrows()]
+        selected_vto_delete = st.selectbox("Choisir un VTO à supprimer :", vto_names_delete)
+
+        submit_suppr = st.form_submit_button("🗑️ Supprimer définitivement")
         if submit_suppr:
-            ok = delete_vto(login_to_delete)
-            if ok:
-                st.success("✅ VTO supprimé avec succès !")
-                st.rerun()
-            else:
-                st.error("❌ Erreur lors de la suppression.")
+            selected_index_delete = vto_names_delete.index(selected_vto_delete)
+            vto_df = vto_df.drop(vto_df.index[selected_index_delete]).reset_index(drop=True)
+            save_vto(vto_df)
+            st.success("❌ VTO supprimé avec succès !")
+            st.rerun()
 else:
     st.info("📭 Aucun VTO à supprimer")
 
