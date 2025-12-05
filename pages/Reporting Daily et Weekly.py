@@ -1644,3 +1644,215 @@ if st.session_state.get("reporting_type") == "hebdomadaire":
                 <div style="font-size: 0.9rem; color: #666; margin-top: 0.5rem;">👤 Meilleur VTO</div>
             </div>
             """, unsafe_allow_html=True)
+
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown('<div class="section-title">📥 Téléchargement du Rapport Excel</div>', unsafe_allow_html=True)
+
+        # 🧾 Export Excel AVEC LES DEUX TABLEAUX
+        try:
+            # Créer les DataFrames avec totaux
+            total_sim = int(df_pvt_summary['TOTAL_SIM'].sum())
+            total_objectif = int(df_pvt_summary['OBJECTIF'].sum())
+            total_tr = round((total_sim / total_objectif * 100), 1)
+
+            df_pvt_summary_export = df_pvt_summary.copy().reset_index(drop=True)
+            new_row_pvt = {
+                'DR': '',
+                'PVT': 'TOTAL',
+                'TOTAL_SIM': total_sim,
+                'OBJECTIF': total_objectif,
+                'TR': f'{total_tr}%'
+            }
+            df_pvt_summary_export = pd.concat([
+                df_pvt_summary_export,
+                pd.DataFrame([new_row_pvt])
+            ], ignore_index=True)
+
+            total_sim_vto = int(df_reporting['TOTAL_SIM'].sum())
+            df_reporting_export = df_reporting.copy().reset_index(drop=True)
+            new_row_vto = {
+                'DR': '',
+                'PVT': '',
+                'PRENOM_VENDEUR': '',
+                'NOM_VENDEUR': '',
+                'LOGIN': 'TOTAL',
+                'TOTAL_SIM': total_sim_vto
+            }
+            df_reporting_export = pd.concat([
+                df_reporting_export,
+                pd.DataFrame([new_row_vto])
+            ], ignore_index=True)
+
+            buffer_output = BytesIO()
+
+            with pd.ExcelWriter(buffer_output, engine='openpyxl') as writer:
+                df_pvt_summary_export.to_excel(writer, sheet_name='Résumé PVT', index=False)
+                df_reporting_export.to_excel(writer, sheet_name='Détails VTO', index=False)
+
+            buffer_output.seek(0)
+            wb = load_workbook(buffer_output)
+
+            # Formater la feuille "Résumé PVT"
+            ws_pvt = wb['Résumé PVT']
+
+            header_fill = PatternFill(start_color="D9D9D9", end_color="D9D9D9", fill_type="solid")
+            header_font = Font(bold=True, size=11)
+            thin_border = Border(
+                left=Side(style='thin'),
+                right=Side(style='thin'),
+                top=Side(style='thin'),
+                bottom=Side(style='thin')
+            )
+
+            for cell in ws_pvt[1]:
+                cell.fill = header_fill
+                cell.font = header_font
+                cell.alignment = Alignment(horizontal='center', vertical='center')
+                cell.border = thin_border
+
+            drv_ranges_pvt = []
+            current_drv = None
+            drv_start = 2
+
+            for row_idx in range(2, ws_pvt.max_row):
+                drv_value = ws_pvt.cell(row_idx, 1).value
+                if drv_value and drv_value != current_drv:
+                    if current_drv is not None and row_idx > drv_start:
+                        drv_ranges_pvt.append((drv_start, row_idx - 1, current_drv))
+                    current_drv = drv_value
+                    drv_start = row_idx
+
+            if ws_pvt.max_row - 1 >= drv_start:
+                drv_ranges_pvt.append((drv_start, ws_pvt.max_row - 1, current_drv))
+
+            for start_row, end_row, drv_value in drv_ranges_pvt:
+                if end_row > start_row:
+                    ws_pvt.merge_cells(f'A{start_row}:A{end_row}')
+                    ws_pvt.cell(start_row, 1).alignment = Alignment(horizontal='left', vertical='center')
+                    ws_pvt.cell(start_row, 1).font = Font(bold=True, size=10)
+
+            ws_pvt.merge_cells(f'A{ws_pvt.max_row}:B{ws_pvt.max_row}')
+            ws_pvt.cell(ws_pvt.max_row, 1).value = 'TOTAL'
+
+            for row_idx in range(2, ws_pvt.max_row + 1):
+                for col_idx in range(1, 6):
+                    cell = ws_pvt.cell(row_idx, col_idx)
+                    cell.border = thin_border
+
+                    if row_idx == ws_pvt.max_row:
+                        cell.font = Font(bold=True, size=11)
+                        cell.fill = PatternFill(start_color="FFE5CC", end_color="FFE5CC", fill_type="solid")
+                        if col_idx in [1, 3, 4, 5]:
+                            cell.alignment = Alignment(horizontal='center', vertical='center')
+                    elif col_idx in [1, 2]:
+                        cell.alignment = Alignment(horizontal='left', vertical='center')
+                        cell.font = Font(size=10)
+                    elif col_idx in [3, 4]:
+                        cell.alignment = Alignment(horizontal='center', vertical='center')
+                        cell.font = Font(size=10)
+                    elif col_idx == 5:
+                        cell.alignment = Alignment(horizontal='center', vertical='center')
+                        cell.font = Font(bold=True, size=10)
+
+            ws_pvt.column_dimensions['A'].width = 8
+            ws_pvt.column_dimensions['B'].width = 45
+            ws_pvt.column_dimensions['C'].width = 12
+            ws_pvt.column_dimensions['D'].width = 12
+            ws_pvt.column_dimensions['E'].width = 10
+            ws_pvt.freeze_panes = 'A2'
+
+            # Formater la feuille "Détails VTO"
+            ws = wb['Détails VTO']
+
+            for cell in ws[1]:
+                cell.fill = header_fill
+                cell.font = header_font
+                cell.alignment = Alignment(horizontal='center', vertical='center')
+                cell.border = thin_border
+
+            drv_ranges = []
+            current_drv = None
+            drv_start = 2
+
+            for row_idx in range(2, ws.max_row):
+                drv_value = ws.cell(row_idx, 1).value
+                if drv_value != current_drv:
+                    if current_drv is not None and row_idx > drv_start:
+                        drv_ranges.append((drv_start, row_idx - 1, current_drv))
+                    current_drv = drv_value
+                    drv_start = row_idx
+
+            if ws.max_row - 1 >= drv_start:
+                drv_ranges.append((drv_start, ws.max_row - 1, current_drv))
+
+            pvt_ranges = []
+            current_pvt = None
+            pvt_start = 2
+
+            for row_idx in range(2, ws.max_row):
+                pvt_value = ws.cell(row_idx, 2).value
+                if pvt_value != current_pvt:
+                    if current_pvt is not None and row_idx > pvt_start:
+                        pvt_ranges.append((pvt_start, row_idx - 1, current_pvt))
+                    current_pvt = pvt_value
+                    pvt_start = row_idx
+
+            if ws.max_row - 1 >= pvt_start:
+                pvt_ranges.append((pvt_start, ws.max_row - 1, current_pvt))
+
+            for start_row, end_row, drv_value in drv_ranges:
+                if end_row > start_row:
+                    ws.merge_cells(f'A{start_row}:A{end_row}')
+                    ws.cell(start_row, 1).alignment = Alignment(horizontal='left', vertical='center')
+                    ws.cell(start_row, 1).font = Font(bold=True, size=10)
+
+            for start_row, end_row, pvt_value in pvt_ranges:
+                if end_row > start_row:
+                    ws.merge_cells(f'B{start_row}:B{end_row}')
+                    ws.cell(start_row, 2).alignment = Alignment(horizontal='left', vertical='center', wrap_text=True)
+                    ws.cell(start_row, 2).font = Font(bold=True, size=10)
+
+            ws.merge_cells(f'A{ws.max_row}:E{ws.max_row}')
+            ws.cell(ws.max_row, 1).value = 'TOTAL'
+
+            for row_idx in range(2, ws.max_row + 1):
+                for col_idx in range(1, 7):
+                    cell = ws.cell(row_idx, col_idx)
+                    cell.border = thin_border
+
+                    if row_idx == ws.max_row:
+                        cell.font = Font(bold=True, size=11)
+                        cell.fill = PatternFill(start_color="FFE5CC", end_color="FFE5CC", fill_type="solid")
+                        if col_idx in [1, 6]:
+                            cell.alignment = Alignment(horizontal='center', vertical='center')
+                    elif col_idx in [1, 2, 3, 4, 5]:
+                        if col_idx not in [1, 2]:
+                            cell.alignment = Alignment(horizontal='left', vertical='center')
+                            cell.font = Font(size=10)
+                    elif col_idx == 6:
+                        cell.alignment = Alignment(horizontal='center', vertical='center')
+                        cell.font = Font(size=10)
+
+            ws.column_dimensions['A'].width = 8
+            ws.column_dimensions['B'].width = 45
+            ws.column_dimensions['C'].width = 18
+            ws.column_dimensions['D'].width = 18
+            ws.column_dimensions['E'].width = 20
+            ws.column_dimensions['F'].width = 12
+            ws.freeze_panes = 'A2'
+
+            final_buffer = BytesIO()
+            wb.save(final_buffer)
+            final_buffer.seek(0)
+
+            st.download_button(
+                label="📥 Télécharger le Reporting Hebdomadaire (2 feuilles : Résumé PVT + Détails VTO)",
+                data=final_buffer,
+                file_name="Weekly_Reporting.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+
+        except Exception as e:
+            st.error(f"❌ Erreur lors de la génération du fichier Excel : {str(e)}")
+            import traceback
+            st.code(traceback.format_exc())
