@@ -269,14 +269,47 @@ with col_title:
 st.markdown("<br>", unsafe_allow_html=True)
 
 # ====================
-# Fichier Excel et fonctions
+# Fichier Excel et fonctions avec stockage persistant
 # ====================
 DATA_PATH = "pvt_list.xlsx"
 
-def save_pvt(df):
+async def save_pvt(df):
+    """Sauvegarde les PVT dans le fichier Excel ET dans le stockage persistant"""
+    # Sauvegarder dans le fichier Excel local
     df.to_excel(DATA_PATH, index=False)
 
-pvt_df = load_pvt()
+    # Sauvegarder aussi dans le stockage persistant de Streamlit
+    try:
+        import json
+        pvt_data = df.to_dict('records')
+        await st.storage.set('pvt_data', json.dumps(pvt_data))
+    except Exception as e:
+        st.warning(f"Attention: Les données ne sont pas sauvegardées de façon permanente. Erreur: {e}")
+
+async def load_pvt_from_storage():
+    """Charge les PVT depuis le stockage persistant"""
+    try:
+        import json
+        stored_data = await st.storage.get('pvt_data')
+        if stored_data and stored_data.get('value'):
+            pvt_list = json.loads(stored_data['value'])
+            return pd.DataFrame(pvt_list)
+    except Exception as e:
+        print(f"Erreur chargement stockage: {e}")
+    return None
+
+# Charger les données
+import asyncio
+
+# Essayer d'abord depuis le stockage persistant
+try:
+    pvt_df_stored = asyncio.run(load_pvt_from_storage())
+    if pvt_df_stored is not None and not pvt_df_stored.empty:
+        pvt_df = pvt_df_stored
+    else:
+        pvt_df = load_pvt()
+except Exception as e:
+    pvt_df = load_pvt()
 
 # ====================
 # Liste des PVT avec style Orange/Cyan
@@ -315,7 +348,7 @@ with st.form("form_ajout"):
     if submit and contact:
         new_pvt = pd.DataFrame([[nom, contact]], columns=["PVT", "CONTACT"])
         pvt_df = pd.concat([pvt_df, new_pvt], ignore_index=True)
-        save_pvt(pvt_df)
+        asyncio.run(save_pvt(pvt_df))
         st.success("✅ PVT ajouté avec succès !")
         st.rerun()
 
@@ -337,7 +370,7 @@ if not pvt_df.empty:
         submit_modif = st.form_submit_button("Enregistrer les modifications")
         if submit_modif:
             pvt_df.loc[pvt_df["PVT"] == nom_to_edit, ["PVT", "CONTACT"]] = [new_nom, new_contact]
-            save_pvt(pvt_df)
+            asyncio.run(save_pvt(pvt_df))
             st.success("✏️ PVT modifié avec succès !")
             st.rerun()
 else:
@@ -353,7 +386,7 @@ if not pvt_df.empty:
         submit_suppr = st.form_submit_button("Supprimer définitivement")
         if submit_suppr:
             pvt_df = pvt_df[pvt_df["PVT"] != pvt_to_delete]
-            save_pvt(pvt_df)
+            asyncio.run(save_pvt(pvt_df))
             st.success("❌ PVT supprimé avec succès !")
             st.rerun()
 else:

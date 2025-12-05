@@ -265,14 +265,47 @@ with col_title:
 st.markdown("<br>", unsafe_allow_html=True)
 
 # ====================
-# Fichier Excel et fonctions
+# Fichier Excel et fonctions avec stockage persistant
 # ====================
 DATA_PATH = "vto_list.xlsx"
 
-def save_vto(df):
+async def save_vto(df):
+    """Sauvegarde les VTO dans le fichier Excel ET dans le stockage persistant"""
+    # Sauvegarder dans le fichier Excel local
     df.to_excel(DATA_PATH, index=False)
 
-vto_df = load_vto()
+    # Sauvegarder aussi dans le stockage persistant de Streamlit
+    try:
+        import json
+        vto_data = df.to_dict('records')
+        await st.storage.set('vto_data', json.dumps(vto_data))
+    except Exception as e:
+        st.warning(f"Attention: Les données ne sont pas sauvegardées de façon permanente. Erreur: {e}")
+
+async def load_vto_from_storage():
+    """Charge les VTO depuis le stockage persistant"""
+    try:
+        import json
+        stored_data = await st.storage.get('vto_data')
+        if stored_data and stored_data.get('value'):
+            vto_list = json.loads(stored_data['value'])
+            return pd.DataFrame(vto_list)
+    except Exception as e:
+        print(f"Erreur chargement stockage: {e}")
+    return None
+
+# Charger les données
+import asyncio
+
+# Essayer d'abord depuis le stockage persistant
+try:
+    vto_df_stored = asyncio.run(load_vto_from_storage())
+    if vto_df_stored is not None and not vto_df_stored.empty:
+        vto_df = vto_df_stored
+    else:
+        vto_df = load_vto()
+except Exception as e:
+    vto_df = load_vto()
 
 # ====================
 # Liste des VTO avec style Orange/Cyan
@@ -327,7 +360,7 @@ with st.form("form_ajout_vto"):
             new_vto = pd.DataFrame([[drv, prenom, nom, pvt, login, kabbu]],
                                    columns=["DRV", "PRENOM_VENDEUR", "NOM_VENDEUR", "PVT", "LOGIN", "KABBU"])
             vto_df = pd.concat([vto_df, new_vto], ignore_index=True)
-            save_vto(vto_df)
+            asyncio.run(save_vto(vto_df))
             st.success("✅ VTO ajouté avec succès !")
             st.rerun()
         else:
@@ -367,7 +400,7 @@ if not vto_df.empty:
             vto_df.loc[selected_index, "PVT"] = new_pvt
             vto_df.loc[selected_index, "LOGIN"] = new_login
             vto_df.loc[selected_index, "KABBU"] = new_kabbu
-            save_vto(vto_df)
+            asyncio.run(save_vto(vto_df))
             st.success("✏️ VTO modifié avec succès !")
             st.rerun()
 else:
@@ -388,7 +421,7 @@ if not vto_df.empty:
         if submit_suppr:
             selected_index_delete = vto_names_delete.index(selected_vto_delete)
             vto_df = vto_df.drop(vto_df.index[selected_index_delete]).reset_index(drop=True)
-            save_vto(vto_df)
+            asyncio.run(save_vto(vto_df))
             st.success("❌ VTO supprimé avec succès !")
             st.rerun()
 else:
