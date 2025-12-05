@@ -3,7 +3,7 @@ import pandas as pd
 from io import BytesIO
 from openpyxl import load_workbook
 import tempfile
-from utils import load_vto 
+from utils import load_vto
 from utils import load_pvt
 import streamlit as st
 import pandas as pd
@@ -14,7 +14,7 @@ import pandas as pd
 from io import BytesIO
 from openpyxl import load_workbook
 import tempfile
-from utils import load_vto 
+from utils import load_vto
 import streamlit as st
 import pandas as pd
 from io import BytesIO
@@ -54,40 +54,40 @@ if file_sim and file_om:
     vto_df['LOGIN'] = vto_df['LOGIN'].astype(str).str.strip().str.lower()
     logins_concernes = vto_df["LOGIN"].astype(str).tolist()
     details = ["En Cours-Identification", "Identifie", "Identifie Photo"]
-    
+
     # ✅ Nettoyage des colonnes
 
     df_sim['LOGIN_VENDEUR'] = df_sim['LOGIN_VENDEUR'].astype(str).str.strip().str.lower()
     df = df_sim.copy()
-    
+
     df = df.rename(columns={
     'MSISDN': 'REALISATION_SIM',
     'ACCUEIL_VENDEUR': 'PVT',
     'LOGIN_VENDEUR': 'LOGIN',
     'AGENCE_VENDEUR': 'DRV'
               })
-            
+
     df['LOGIN'] = df['LOGIN'].astype(str)
     df['DRV'] = df['DRV'].astype(str).str.strip().str.upper()
     df['NOM_VENDEUR'] = df['NOM_VENDEUR'].astype(str).str.strip().str.upper()
     df['PRENOM_VENDEUR'] = df['PRENOM_VENDEUR'].astype(str).str.strip().str.upper()
-    
+
     # 🔍 Filtrage
     df_filtre = df[df['LOGIN'].isin(logins_concernes) & df['ETAT_IDENTIFICATION'].astype(str).isin(details)]
 
     st.success("✅ Fichier filtré avec succès !")
     st.write("📊 Ventes LOUMA mensuels :", df_filtre.shape[0], "lignes")
     st.dataframe(df_filtre)
-    
+
     # Remplacer DRV
-    df_filtre["DRV"] = df_filtre["DRV"].replace({ 
+    df_filtre["DRV"] = df_filtre["DRV"].replace({
                 "DV-DRV2_DIRECTION REGIONALE DES VENTES DAKAR 2": "DR2",
                 "DV-DRVS_DIRECTION REGIONALE DES VENTES SUD": "DR SUD",
                 "DV-DRVSE_DIRECTION REGIONALE DES VENTES SUD-EST": "SUD EST",
                 "DV-DRVN_DIRECTION REGIONALE DES VENTES NORD": "DR NORD",
                 "DV-DRVC_DIRECTION REGIONALE DES VENTES CENTRE": "DR CENTRE",
                 "DV-DRVE_DIRECTION REGIONALE DES VENTES EST": "DR EST"})
-            
+
     #définir les colonnes pour les paiements
     df_filtre = df_filtre.groupby(['DRV', 'PVT', 'PRENOM_VENDEUR', 'NOM_VENDEUR', 'LOGIN']).agg({
             'REALISATION_SIM': 'count'}).reset_index().sort_values(['DRV', 'PVT'])
@@ -102,7 +102,7 @@ if file_sim and file_om:
     # Fusionner pour ajouter la colonne KABBU
     df_filtre = df_filtre.merge(vto_df[["LOGIN", "KABBU"]], how="left")
 
-            
+
 
     # 👉 Ajouter les lignes de total après chaque DRV
     df_with_totals = pd.DataFrame(columns=df_filtre.columns)
@@ -116,11 +116,11 @@ if file_sim and file_om:
                     'DRV': f"{drv}",
                     'PVT': "TOTAL PVT",
                     'PAIEMENT_SIM': total_paiement ,
-                    
+
                         }
         df_with_totals = pd.concat([df_with_totals, pd.DataFrame([row_total])], ignore_index=True)
-    
-    st.dataframe(df_with_totals)  
+
+    st.dataframe(df_with_totals)
 
     # Affichage du tableau simplifié
     cols_affichage = ['DRV', 'PVT', 'PRENOM_VENDEUR', 'NOM_VENDEUR','KABBU','REALISATION', 'OBJECTIF', "TAUX D'ATTEINTE", 'SI 100% ATTEINT', 'PAIEMENT', 'PAIEMENT CHAUFFEUR', 'TOTAL SIM+CHAUFFEUR']
@@ -135,9 +135,9 @@ if file_sim and file_om:
     details = ["En Cours-Identification", "Identifie", "Identifie Photo"]
 
     # ✅ Nettoyage des colonnes
-    
+
     df_om['LOGIN'] = df_om['LOGIN'].astype(str).str.strip().str.lower()
-            
+
     df_om['NOM_VENDEUR'] = df_om['NOM_VENDEUR'].astype(str).str.strip().str.upper()
     df_om['PRENOM_VENDEUR'] = df_om['PRENOM_VENDEUR'].astype(str).str.strip().str.upper()
 
@@ -151,15 +151,15 @@ if file_sim and file_om:
     # Remplacer les NaN par 0
     df_filtre_om = df_filtre_om.fillna(0)
 
-            
-    #Définition des colonnes pour les paiements      
+
+    #Définition des colonnes pour les paiements
     df_filtre_om['OBJECTIF OM'] = 120
     df_filtre_om["TAUX D'ATTEINTE OM"] = df_filtre_om["TAUX D'ATTEINTE OM"] = ((df_filtre_om['REALISATION_OM'] / df_filtre_om['OBJECTIF OM']).fillna(0).apply(lambda x: f"{round(x*100)}%"))
 
     df_filtre_om['SI 100% ATTEINT OM'] = 25000
     df_filtre_om['PAIEMENT_OM'] = df_filtre_om['REALISATION_OM'].apply(lambda x: 25000 if x >= 120 else round((x/120)*25000))
     #df_filtre['PAIEMENT CHAUFFEUR'] = 150000
-           
+
     # Fusionner pour ajouter la colonne KABBU
     df_filtre_om = df_filtre_om.merge(vto_df[["LOGIN", "DRV", "PVT"]], how="left")
     st.dataframe(df_filtre_om)
@@ -177,7 +177,7 @@ if file_sim and file_om:
                     'DRV': f"{drv}",
                     'PVT': "TOTAL PVT",
                     'PAIEMENT_OM': total_paiement_om ,
-                    
+
                         }
                 df_with_totals_om = pd.concat([df_with_totals_om, pd.DataFrame([row_total])], ignore_index=True)
 
@@ -197,7 +197,7 @@ if file_sim and file_om:
         on=["LOGIN"],
         how="outer"
     )
- 
+
     st.dataframe(df_final)
 
     # 👉 Ajouter les lignes de total après chaque DRV
@@ -213,8 +213,8 @@ if file_sim and file_om:
                     'DRV': f"{drv}",
                     'PVT': "TOTAL PVT",
                     'PAIEMENT_OM': total_paiement_om ,
-                    'PAIEMENT_SIM': total_paiement_sim 
-                    
+                    'PAIEMENT_SIM': total_paiement_sim
+
                         }
                 df_final_with_totals = pd.concat([df_final_with_totals, pd.DataFrame([row_total])], ignore_index=True)
 
@@ -245,20 +245,20 @@ if file_sim and file_om:
                     total_paiement_om = group_pvt['PAIEMENT_OM'].sum()
                     total_sim = group_pvt['REALISATION_SIM'].sum()
                     total_obj = group_pvt['OBJECTIF SIM'].sum()
-                    si_total_atteint = group_pvt['SI 100% ATTEINT SIM'].sum() 
+                    si_total_atteint = group_pvt['SI 100% ATTEINT SIM'].sum()
                     tr_mean = group_pvt["TAUX D'ATTEINTE SIM"].apply(lambda x: float(x.strip('%'))).mean()
                     total_om = group_pvt['REALISATION_OM'].sum()
                     total_obj_om = group_pvt['OBJECTIF OM'].sum()
-                    si_total_atteint_om = group_pvt['SI 100% ATTEINT OM'].sum() 
+                    si_total_atteint_om = group_pvt['SI 100% ATTEINT OM'].sum()
                     tr_mean_om = (group_pvt["TAUX D'ATTEINTE OM"].apply(lambda x: float(str(x).replace('%', '').strip()) if pd.notnull(x) else 0).mean())
                     #tr_mean_om = group_pvt["TAUX D'ATTEINTE OM"].apply(lambda x: float(x.strip('%'))).mean()
                     total_paiement_sim = group_pvt['PAIEMENT_SIM'].sum()
                     chauffeur = 100000
-                    total_pvt = total_paiement_sim + chauffeur + total_paiement_om 
+                    total_pvt = total_paiement_sim + chauffeur + total_paiement_om
 
                     #total_general = group['PAIEMENT_OM'].sum()
                     row_total = {
-                        
+
                         'PVT': "TOTAL PVT",
                         'REALISATION_SIM': total_sim,
                         'OBJECTIF SIM': total_obj,
@@ -272,7 +272,7 @@ if file_sim and file_om:
                         'PAIEMENT_SIM': total_paiement_sim,
                         'PAIEMENT CHAUFFEUR' : chauffeur,
                         'PAIEMENT SIM + OM + CHAUFFEUR' : total_pvt
-                        
+
                             }
                     df_test_with_totals = pd.concat([df_test_with_totals, pd.DataFrame([row_total])], ignore_index=True)
 
@@ -288,14 +288,14 @@ if file_sim and file_om:
                         'PAIEMENT_SIM': total_paiement_sim_drv,
                         'PAIEMENT CHAUFFEUR' : chauffeur_drv,
                         'PAIEMENT SIM + OM + CHAUFFEUR' : total
-                            
+
                             }
         df_test_with_totals = pd.concat([df_test_with_totals, pd.DataFrame([row_total_drv])], ignore_index=True)
 
     df_test_with_totals = df_test_with_totals.rename(columns={
     'PRENOM_VENDEUR_x': 'PRENOM_VENDEUR',
     'NOM_VENDEUR_x': 'NOM_VENDEUR'
-    
+
               })
 
     df_test_with_totals.drop(['PRENOM_VENDEUR_y', 'NOM_VENDEUR_y'], axis=1, inplace=True)
@@ -305,7 +305,7 @@ if file_sim and file_om:
 
 
     # === Calcul des paiements
-    
+
     #---
     df_test["MONTANT"] = df_test["PAIEMENT_SIM"] + df_test["PAIEMENT_OM"]
 
