@@ -292,8 +292,8 @@ else:
             color = colors[i % 2]
             html += f'<tr style="background:{color}; color:white; font-weight:500;">'
             html += f'<td>{row.get("DRV", "N/A")}</td>'
-            html += f'<td>{row.get("Prénom", "N/A")}</td>'
-            html += f'<td>{row.get("Nom", "N/A")}</td>'
+            html += f'<td>{row.get("PRENOM_VENDEUR", "N/A")}</td>'
+            html += f'<td>{row.get("NOM_VENDEUR", "N/A")}</td>'
             html += f'<td>{row.get("PVT", "N/A")}</td>'
             html += f'<td>{row.get("Login", "N/A")}</td>'
             html += f'<td>{row.get("KABBU", "N/A")}</td>'
@@ -325,7 +325,7 @@ with st.form("form_ajout_vto"):
     if submit_ajout:
         if all([drv, prenom, nom, pvt, login, kabbu]):
             new_vto = pd.DataFrame([[drv, prenom, nom, pvt, login, kabbu]],
-                                   columns=["DRV", "Prénom", "Nom", "PVT", "Login", "KABBU"])
+                                   columns=["DRV", "PRENOM_VENDEUR", "NOM_VENDEUR", "PVT", "Login", "KABBU"])
             vto_df = pd.concat([vto_df, new_vto], ignore_index=True)
             save_vto(vto_df)
             st.success("✅ VTO ajouté avec succès !")
@@ -340,7 +340,7 @@ st.markdown('<div class="section-title">Modifier un VTO existant</div>', unsafe_
 
 if not vto_df.empty:
     # Créer une liste de noms complets pour la sélection
-    vto_names = [f"{row['Prénom']} {row['Nom']} ({row['Login']})" for _, row in vto_df.iterrows()]
+    vto_names = [f"{row['PRENOM_VENDEUR']} {row['NOM_VENDEUR']} ({row['Login']})" for _, row in vto_df.iterrows()]
     selected_vto_name = st.selectbox("Choisir un VTO à modifier :", vto_names)
 
     # Récupérer l'index du VTO sélectionné
@@ -351,9 +351,9 @@ if not vto_df.empty:
         col1, col2, col3 = st.columns(3)
         with col1:
             new_drv = st.text_input("DRV", value=str(vto_to_edit["DRV"]))
-            new_prenom = st.text_input("Prénom", value=str(vto_to_edit["Prénom"]))
+            new_prenom = st.text_input("Prénom", value=str(vto_to_edit["PRENOM_VENDEUR"]))
         with col2:
-            new_nom = st.text_input("Nom", value=str(vto_to_edit["Nom"]))
+            new_nom = st.text_input("Nom", value=str(vto_to_edit["NOM_VENDEUR"]))
             new_pvt = st.text_input("PVT", value=str(vto_to_edit["PVT"]))
         with col3:
             new_login = st.text_input("Login", value=str(vto_to_edit["Login"]))
@@ -376,7 +376,7 @@ st.markdown('<div class="section-title">Supprimer un VTO</div>', unsafe_allow_ht
 if not vto_df.empty:
     with st.form("form_suppr_vto"):
         # Créer une liste de noms complets pour la sélection
-        vto_names_delete = [f"{row['Prénom']} {row['Nom']} ({row['Login']})" for _, row in vto_df.iterrows()]
+        vto_names_delete = [f"{row['PRENOM_VENDEUR']} {row['NOM_VENDEUR']} ({row['Login']})" for _, row in vto_df.iterrows()]
         selected_vto_delete = st.selectbox("Choisir un VTO à supprimer :", vto_names_delete)
 
         submit_suppr = st.form_submit_button("🗑️ Supprimer définitivement")
