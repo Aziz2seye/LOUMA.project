@@ -6,7 +6,7 @@ from pathlib import Path
 from PIL import Image
 
 # ⚡ Ajouter le dossier parent au path pour utils.py
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(_file_), '..')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from utils import load_pvt
 
 # ====================
@@ -211,7 +211,7 @@ st.markdown("""
 # ====================
 # Charger le logo
 # ====================
-logo_path = Path(_file_).parent.parent / "assets" / "logo sonatel.png"
+logo_path = Path(__file__).parent.parent / "assets" / "logo sonatel.png"
 try:
     logo = Image.open(logo_path)
 except FileNotFoundError:
@@ -338,7 +338,7 @@ if not pvt_df.empty:
         if submit_modif:
             pvt_df.loc[pvt_df["PVT"] == nom_to_edit, ["PVT", "CONTACT"]] = [new_nom, new_contact]
             save_pvt(pvt_df)
-            st.success("✏ PVT modifié avec succès !")
+            st.success("✏️ PVT modifié avec succès !")
             st.rerun()
 else:
     st.info("Aucun PVT disponible pour modification")

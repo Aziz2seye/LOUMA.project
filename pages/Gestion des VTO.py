@@ -7,7 +7,7 @@ from pathlib import Path
 from PIL import Image
 
 # ⚡ Ajouter le dossier parent au path pour importer utils.py
-current_dir = Path(_file_).parent
+current_dir = Path(__file__).parent
 parent_dir = current_dir.parent
 sys.path.insert(0, str(parent_dir))
 
