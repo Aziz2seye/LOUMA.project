@@ -273,43 +273,33 @@ st.markdown("<br>", unsafe_allow_html=True)
 # ====================
 DATA_PATH = "pvt_list.xlsx"
 
-async def save_pvt(df):
-    """Sauvegarde les PVT dans le fichier Excel ET dans le stockage persistant"""
+def save_pvt(df):
+    """Sauvegarde les PVT dans le fichier Excel"""
     # Sauvegarder dans le fichier Excel local
     df.to_excel(DATA_PATH, index=False)
+    st.success("✅ Données sauvegardées avec succès !")
 
-    # Sauvegarder aussi dans le stockage persistant de Streamlit
+def load_pvt_data():
+    """Charge les PVT depuis le fichier Excel ou crée un nouveau fichier"""
     try:
-        import json
-        pvt_data = df.to_dict('records')
-        await st.storage.set('pvt_data', json.dumps(pvt_data))
+        if os.path.exists(DATA_PATH):
+            return pd.read_excel(DATA_PATH)
+        else:
+            # Si le fichier n'existe pas, on charge depuis utils et on sauvegarde
+            df = load_pvt()
+            save_pvt(df)
+            return df
     except Exception as e:
-        st.warning(f"Attention: Les données ne sont pas sauvegardées de façon permanente. Erreur: {e}")
+        st.error(f"Erreur lors du chargement des données: {e}")
+        # Retourner un DataFrame vide
+        return pd.DataFrame(columns=["PVT", "CONTACT"])
 
-async def load_pvt_from_storage():
-    """Charge les PVT depuis le stockage persistant"""
-    try:
-        import json
-        stored_data = await st.storage.get('pvt_data')
-        if stored_data and stored_data.get('value'):
-            pvt_list = json.loads(stored_data['value'])
-            return pd.DataFrame(pvt_list)
-    except Exception as e:
-        print(f"Erreur chargement stockage: {e}")
-    return None
+# Initialiser les données dans session_state
+if 'pvt_data' not in st.session_state:
+    st.session_state.pvt_data = load_pvt_data()
 
-# Charger les données
-import asyncio
-
-# Essayer d'abord depuis le stockage persistant
-try:
-    pvt_df_stored = asyncio.run(load_pvt_from_storage())
-    if pvt_df_stored is not None and not pvt_df_stored.empty:
-        pvt_df = pvt_df_stored
-    else:
-        pvt_df = load_pvt()
-except Exception as e:
-    pvt_df = load_pvt()
+# Obtenir les données actuelles
+pvt_df = st.session_state.pvt_data
 
 # ====================
 # Liste des PVT avec style Orange/Cyan
@@ -317,6 +307,10 @@ except Exception as e:
 st.markdown('<div class="section-title">Liste actuelle des PVT</div>', unsafe_allow_html=True)
 
 def render_pvt_table(df):
+    if df.empty:
+        st.info("Aucun PVT enregistré. Ajoutez un premier PVT.")
+        return
+
     html = '<div class="dataframe-container"><table class="custom-table">'
     # En-tête
     html += '<thead><tr><th>PVT</th><th>CONTACT</th></tr></thead><tbody>'
@@ -345,12 +339,18 @@ with st.form("form_ajout"):
         contact = st.text_input("Numéro de contact", placeholder="Ex: +221 77 123 45 67")
 
     submit = st.form_submit_button("Ajouter le PVT")
-    if submit and contact:
+    if submit and nom and contact:
         new_pvt = pd.DataFrame([[nom, contact]], columns=["PVT", "CONTACT"])
+        # Ajouter aux données existantes
         pvt_df = pd.concat([pvt_df, new_pvt], ignore_index=True)
-        asyncio.run(save_pvt(pvt_df))
+        # Mettre à jour session_state
+        st.session_state.pvt_data = pvt_df
+        # Sauvegarder dans le fichier
+        save_pvt(pvt_df)
         st.success("✅ PVT ajouté avec succès !")
         st.rerun()
+    elif submit and (not nom or not contact):
+        st.warning("Veuillez remplir tous les champs")
 
 # ====================
 # Modifier un PVT
@@ -369,8 +369,12 @@ if not pvt_df.empty:
 
         submit_modif = st.form_submit_button("Enregistrer les modifications")
         if submit_modif:
+            # Modifier les données
             pvt_df.loc[pvt_df["PVT"] == nom_to_edit, ["PVT", "CONTACT"]] = [new_nom, new_contact]
-            asyncio.run(save_pvt(pvt_df))
+            # Mettre à jour session_state
+            st.session_state.pvt_data = pvt_df
+            # Sauvegarder dans le fichier
+            save_pvt(pvt_df)
             st.success("✏️ PVT modifié avec succès !")
             st.rerun()
 else:
@@ -385,12 +389,58 @@ if not pvt_df.empty:
         pvt_to_delete = st.selectbox("Choisir un PVT à supprimer :", pvt_df["PVT"])
         submit_suppr = st.form_submit_button("Supprimer définitivement")
         if submit_suppr:
-            pvt_df = pvt_df[pvt_df["PVT"] != pvt_to_delete]
-            asyncio.run(save_pvt(pvt_df))
+            # Supprimer le PVT
+            pvt_df = pvt_df[pvt_df["PVT"] != pvt_to_delete].reset_index(drop=True)
+            # Mettre à jour session_state
+            st.session_state.pvt_data = pvt_df
+            # Sauvegarder dans le fichier
+            save_pvt(pvt_df)
             st.success("❌ PVT supprimé avec succès !")
             st.rerun()
 else:
     st.info("Aucun PVT à supprimer")
+
+# ====================
+# Bouton pour réinitialiser les données
+# ====================
+st.markdown('<div class="section-title">Options avancées</div>', unsafe_allow_html=True)
+if st.button("🔄 Réinitialiser aux données par défaut", use_container_width=True):
+    # Charger les données originales depuis utils.py
+    pvt_df = load_pvt()
+    # Mettre à jour session_state
+    st.session_state.pvt_data = pvt_df
+    # Sauvegarder dans le fichier
+    save_pvt(pvt_df)
+    st.success("✅ Données réinitialisées avec succès !")
+    st.rerun()
+
+# ====================
+# Télécharger les données
+# ====================
+if not pvt_df.empty:
+    st.markdown("### 📥 Télécharger les données")
+
+    # Convertir en CSV pour téléchargement
+    csv = pvt_df.to_csv(index=False).encode('utf-8')
+
+    st.download_button(
+        label="📊 Télécharger en CSV",
+        data=csv,
+        file_name="pvt_list.csv",
+        mime="text/csv",
+        use_container_width=True
+    )
+
+    # Convertir en Excel pour téléchargement
+    excel_buffer = pvt_df.to_excel(index=False, engine='openpyxl')
+
+    st.download_button(
+        label="📈 Télécharger en Excel",
+        data=excel_buffer,
+        file_name="pvt_list.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        use_container_width=True
+    )
 
 # ====================
 # Footer
