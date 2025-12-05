@@ -22,13 +22,13 @@ pio.kaleido.scope.default_height = 600
 pio.kaleido.scope.default_scale = 2
 
 # Ajouter le dossier pages au path
-current_dir = Path(_file_).parent
+current_dir = Path(__file__).parent
 if str(current_dir) not in sys.path:
     sys.path.insert(0, str(current_dir))
 
 from db_manager import ReportingDatabase
 # Ajouter le répertoire parent au path Python
-current_dir = Path(_file_).parent
+current_dir = Path(__file__).parent
 parent_dir = current_dir.parent
 sys.path.insert(0, str(parent_dir))
 
@@ -1617,3 +1617,30 @@ if st.session_state.get("reporting_type") == "hebdomadaire":
                 background: white;
                 border-radius: 12px;
                 padding: 1.2rem;
+                box-shadow: 0 4px 15px rgba(0, 212, 170, 0.1);
+                border-left: 5px solid #00D4AA;
+                text-align: center;
+            ">
+                <div style="font-size: 1.8rem; font-weight: 700; color: #00D4AA;">{meilleur_pvt_nom}</div>
+                <div style="font-size: 0.9rem; color: #666; margin-top: 0.5rem;">🏪 Meilleur PVT</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        with col4:
+            meilleur_vto = df_top10.nlargest(1, 'TOTAL_SIM')
+            meilleur_vto_nom = meilleur_vto['PRENOM_VENDEUR'].iloc[0][:8] + "..." if not meilleur_vto.empty and len(meilleur_vto['PRENOM_VENDEUR'].iloc[0]) > 8 else (meilleur_vto['PRENOM_VENDEUR'].iloc[0] if not meilleur_vto.empty else "N/A")
+            meilleur_vto_ventes = meilleur_vto['TOTAL_SIM'].iloc[0] if not meilleur_vto.empty else 0
+
+            st.markdown(f"""
+            <div style="
+                background: white;
+                border-radius: 12px;
+                padding: 1.2rem;
+                box-shadow: 0 4px 15px rgba(255, 80, 0, 0.1);
+                border-left: 5px solid #FF5000;
+                text-align: center;
+            ">
+                <div style="font-size: 1.8rem; font-weight: 700; color: #FF5000;">{meilleur_vto_nom}</div>
+                <div style="font-size: 0.9rem; color: #666; margin-top: 0.5rem;">👤 Meilleur VTO</div>
+            </div>
+            """, unsafe_allow_html=True)
