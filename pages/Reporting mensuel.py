@@ -9,7 +9,8 @@ except ImportError:
     subprocess.check_call([sys.executable, "-m", "pip", "install", "kaleido", "--break-system-packages"])
     import kaleido
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(_file_))))
+# CORRECTION ICI : __file__ au lieu de _file_
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import streamlit as st
 import pandas as pd
@@ -160,7 +161,7 @@ st.markdown("""
 # Charger le logo
 # ====================
 logo = None
-parent_dir = Path(_file_).parent.parent
+parent_dir = Path(__file__).parent.parent  # CORRECTION ICI AUSSI
 logo_paths = [
     parent_dir / "assets" / "logo sonatel.png",
     Path("assets") / "logo sonatel.png",
