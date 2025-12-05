@@ -361,7 +361,12 @@ if not vto_df.empty:
 
         submit_modif = st.form_submit_button("💾 Enregistrer les modifications")
         if submit_modif:
-            vto_df.iloc[selected_index] = [new_drv, new_prenom, new_nom, new_pvt, new_login, new_kabbu]
+            vto_df.loc[selected_index, "DRV"] = new_drv
+            vto_df.loc[selected_index, "PRENOM_VENDEUR"] = new_prenom
+            vto_df.loc[selected_index, "NOM_VENDEUR"] = new_nom
+            vto_df.loc[selected_index, "PVT"] = new_pvt
+            vto_df.loc[selected_index, "LOGIN"] = new_login
+            vto_df.loc[selected_index, "KABBU"] = new_kabbu
             save_vto(vto_df)
             st.success("✏️ VTO modifié avec succès !")
             st.rerun()
