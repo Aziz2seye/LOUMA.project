@@ -15,11 +15,11 @@ from datetime import datetime
 import sys
 from pathlib import Path
 
-# Configuration pour l'export PNG
+# Configuration pour l'export PNG - RÉDUIT LA TAILLE
 pio.kaleido.scope.default_format = "png"
-pio.kaleido.scope.default_width = 1200
-pio.kaleido.scope.default_height = 600
-pio.kaleido.scope.default_scale = 2
+pio.kaleido.scope.default_width = 800  # Réduit de 1200 à 800
+pio.kaleido.scope.default_height = 400  # Réduit de 600 à 400
+pio.kaleido.scope.default_scale = 1.5   # Réduit de 2 à 1.5
 
 # Ajouter le dossier pages au path
 current_dir = Path(__file__).parent
@@ -376,20 +376,20 @@ if st.session_state.get("reporting_type") == "journalier":
         st.markdown('<div class="section-title">📊 Résumé par PVT</div>', unsafe_allow_html=True)
 
         df_pvt_summary = df_filtre.groupby(['DR', 'PVT'], as_index=False).size()
-        df_pvt_summary.columns = ['DR', 'PVT', 'TOTAL_SIM']
+        df_pvt_summary.columns = ['DR', 'PVT', 'REALISATION']
         df_pvt_summary['OBJECTIF'] = 240  # Objectif journalier par PVT
-        df_pvt_summary['TR'] = (df_pvt_summary['TOTAL_SIM'] / df_pvt_summary['OBJECTIF'] * 100).round(0).astype(int).astype(str) + '%'
+        df_pvt_summary['R/O'] = (df_pvt_summary['REALISATION'] / df_pvt_summary['OBJECTIF'] * 100).round(0).astype(int).astype(str) + '%'
 
         # Trier par DRV
         df_pvt_summary = df_pvt_summary.sort_values(['DR', 'PVT'])
 
         # Ajouter ligne de total pour l'affichage
-        total_sim = df_pvt_summary['TOTAL_SIM'].sum()
+        total_realisation = df_pvt_summary['REALISATION'].sum()
         total_objectif = df_pvt_summary['OBJECTIF'].sum()
-        total_tr = round((total_sim / total_objectif * 100), 1)
+        total_ro = round((total_realisation / total_objectif * 100), 1)
 
         df_pvt_summary_display = df_pvt_summary.copy()
-        df_pvt_summary_display.loc[len(df_pvt_summary_display)] = ['', 'TOTAL', total_sim, total_objectif, f'{total_tr}%']
+        df_pvt_summary_display.loc[len(df_pvt_summary_display)] = ['', 'TOTAL', total_realisation, total_objectif, f'{total_ro}%']
 
         st.dataframe(df_pvt_summary_display, use_container_width=True)
 
@@ -399,15 +399,15 @@ if st.session_state.get("reporting_type") == "journalier":
         st.markdown('<div class="section-title">📋 Détails par VTO</div>', unsafe_allow_html=True)
 
         df_reporting = df_filtre.groupby(['DR', 'PVT', 'PRENOM_VENDEUR', 'NOM_VENDEUR', 'LOGIN'], as_index=False).size()
-        df_reporting.columns = ['DR', 'PVT', 'PRENOM_VENDEUR', 'NOM_VENDEUR', 'LOGIN', 'TOTAL_SIM']
+        df_reporting.columns = ['DR', 'PVT', 'PRENOM_VENDEUR', 'NOM_VENDEUR', 'LOGIN', 'REALISATION']
 
-        # Trier par DRV, PVT puis TOTAL_SIM
-        df_reporting = df_reporting.sort_values(['DR', 'PVT', 'TOTAL_SIM'], ascending=[True, True, False])
+        # Trier par DRV, PVT puis REALISATION
+        df_reporting = df_reporting.sort_values(['DR', 'PVT', 'REALISATION'], ascending=[True, True, False])
 
         # Ajouter ligne de total pour l'affichage
-        total_sim_vto = df_reporting['TOTAL_SIM'].sum()
+        total_realisation_vto = df_reporting['REALISATION'].sum()
         df_reporting_display = df_reporting.copy()
-        df_reporting_display.loc[len(df_reporting_display)] = ['', '', '', '', 'TOTAL', total_sim_vto]
+        df_reporting_display.loc[len(df_reporting_display)] = ['', '', '', '', 'TOTAL', total_realisation_vto]
 
         st.dataframe(df_reporting_display, use_container_width=True)
 
@@ -493,12 +493,12 @@ if st.session_state.get("reporting_type") == "journalier":
         # Première ligne : Top DR (circulaire + barres VERTICALES)
         st.markdown('<h4 style="text-align: center; color: #FF7900;">🗺 Distribution par Direction Régionale</h4>', unsafe_allow_html=True)
 
-        df_drv = df_reporting.groupby('DR').agg({'TOTAL_SIM': 'sum'}).reset_index()
-        df_drv = df_drv.sort_values('TOTAL_SIM', ascending=False)  # Tri décroissant
+        df_drv = df_reporting.groupby('DR').agg({'REALISATION': 'sum'}).reset_index()
+        df_drv = df_drv.sort_values('REALISATION', ascending=False)  # Tri décroissant
 
         # Calculer le pourcentage pour chaque DR
-        total_ventes = df_drv['TOTAL_SIM'].sum()
-        df_drv['POURCENTAGE'] = (df_drv['TOTAL_SIM'] / total_ventes * 100).round(1)
+        total_ventes = df_drv['REALISATION'].sum()
+        df_drv['POURCENTAGE'] = (df_drv['REALISATION'] / total_ventes * 100).round(1)
 
         col_dr1, col_dr2 = st.columns(2)
 
@@ -506,14 +506,14 @@ if st.session_state.get("reporting_type") == "journalier":
             # Diagramme circulaire
             fig_pie_dr = px.pie(
                 df_drv,
-                values='TOTAL_SIM',
+                values='REALISATION',
                 names='DR',
                 title='Distribution des ventes par DR (Journalier)',
                 color_discrete_sequence=['#FF7900', '#FF5000', '#FF3000', '#E57200', '#CC6600', '#B35900'],
                 hole=0.3
             )
 
-            df_drv['LABEL'] = df_drv.apply(lambda row: f"{row['DR']}<br>{row['TOTAL_SIM']} ventes<br>({row['POURCENTAGE']}%)", axis=1)
+            df_drv['LABEL'] = df_drv.apply(lambda row: f"{row['DR']}<br>{row['REALISATION']} ventes<br>({row['POURCENTAGE']}%)", axis=1)
 
             fig_pie_dr.update_traces(
                 textposition='inside',
@@ -522,7 +522,7 @@ if st.session_state.get("reporting_type") == "journalier":
                 textfont_size=10,
                 marker=dict(line=dict(color='white', width=2)),
                 hovertemplate="<b>%{label}</b><br>" +
-                             "Ventes: %{value}<br>" +
+                             "Réalisation: %{value}<br>" +
                              "Pourcentage: %{percent}<br>" +
                              "<extra></extra>"
             )
@@ -535,7 +535,7 @@ if st.session_state.get("reporting_type") == "journalier":
                     y=0.95
                 ),
                 font=dict(family='Poppins', size=10),
-                height=400,
+                height=350,  # Réduit de 400 à 350
                 margin=dict(t=70, b=30, l=30, r=30),
                 showlegend=False,
                 hoverlabel=dict(
@@ -561,18 +561,18 @@ if st.session_state.get("reporting_type") == "journalier":
             fig_bar_dr = go.Figure()
 
             # Tri pour avoir les plus hautes barres à gauche
-            df_drv_bar = df_drv.sort_values('TOTAL_SIM', ascending=False)
+            df_drv_bar = df_drv.sort_values('REALISATION', ascending=False)
 
             fig_bar_dr.add_trace(go.Bar(
                 x=df_drv_bar['DR'],
-                y=df_drv_bar['TOTAL_SIM'],
+                y=df_drv_bar['REALISATION'],
                 marker_color='#FF7900',
-                text=df_drv_bar.apply(lambda row: f"{row['TOTAL_SIM']} ventes", axis=1),
+                text=df_drv_bar.apply(lambda row: f"{row['REALISATION']}<br>({row['POURCENTAGE']}%)", axis=1),
                 textposition='outside',
                 textfont=dict(size=10, color='#333'),
                 textangle=0,
                 hovertemplate="<b>%{x}</b><br>" +
-                             "Ventes: %{y}<br>" +
+                             "Réalisation: %{y}<br>" +
                              "Pourcentage: %{customdata}%<br>" +
                              "<extra></extra>",
                 customdata=df_drv_bar['POURCENTAGE']
@@ -586,9 +586,9 @@ if st.session_state.get("reporting_type") == "journalier":
                     y=0.95
                 ),
                 xaxis_title='',
-                yaxis_title='Nombre de ventes',
+                yaxis_title='Réalisation',
                 template='plotly_white',
-                height=400,
+                height=350,  # Réduit de 400 à 350
                 margin=dict(t=70, b=30, l=60, r=30),
                 font=dict(family='Poppins', size=10),
                 hoverlabel=dict(
@@ -628,9 +628,14 @@ if st.session_state.get("reporting_type") == "journalier":
             st.markdown('<h4 style="text-align: center; color: #009CA6;">🏪 Top 5 Points de Vente</h4>', unsafe_allow_html=True)
 
             # Calculer le top 5 PVT
-            df_pvt_summary_chart = df_filtre.groupby(['DR', 'PVT']).agg({'TOTAL_SIM': 'sum'}).reset_index()
-            df_top_pvt = df_pvt_summary_chart.nlargest(5, 'TOTAL_SIM')  # Top 5 seulement
-            df_top_pvt = df_top_pvt.sort_values('TOTAL_SIM', ascending=True)  # Tri pour meilleur en haut
+            df_pvt_summary_chart = df_filtre.groupby(['DR', 'PVT']).agg({'REALISATION': 'sum'}).reset_index()
+            df_top_pvt = df_pvt_summary_chart.nlargest(5, 'REALISATION')  # Top 5 seulement
+
+            # Calculer le pourcentage pour le top 5
+            total_pvt_ventes = df_top_pvt['REALISATION'].sum()
+            df_top_pvt['POURCENTAGE'] = (df_top_pvt['REALISATION'] / total_pvt_ventes * 100).round(1)
+
+            df_top_pvt = df_top_pvt.sort_values('REALISATION', ascending=True)  # Tri pour meilleur en haut
 
             # Créer un label court
             def create_pvt_label(pvt_name, dr, max_length=25):
@@ -645,21 +650,22 @@ if st.session_state.get("reporting_type") == "journalier":
 
             fig_pvt = go.Figure()
 
-            # Barres horizontales - SUPPRIMER LE TEXTE À DROITE
+            # Barres horizontales avec pourcentage
             fig_pvt.add_trace(go.Bar(
                 y=df_top_pvt['LABEL'],
-                x=df_top_pvt['TOTAL_SIM'],
+                x=df_top_pvt['REALISATION'],
                 orientation='h',
                 marker_color='#009CA6',
-                # SUPPRIMÉ: text=df_top_pvt['TOTAL_SIM'],
-                # SUPPRIMÉ: textposition='outside',
-                # SUPPRIMÉ: textfont=dict(size=10, color='#333'),
-                # SUPPRIMÉ: textangle=0,
+                text=df_top_pvt.apply(lambda row: f"{row['REALISATION']}<br>({row['POURCENTAGE']}%)", axis=1),
+                textposition='outside',
+                textfont=dict(size=10, color='#333'),
+                textangle=0,
                 hovertemplate="<b>%{customdata[0]}</b><br>" +
-                             "Ventes: %{x}<br>" +
+                             "Réalisation: %{x}<br>" +
                              "DR: %{customdata[1]}<br>" +
+                             "Pourcentage: %{customdata[2]}%<br>" +
                              "<extra></extra>",
-                customdata=df_top_pvt[['PVT', 'DR']]
+                customdata=df_top_pvt[['PVT', 'DR', 'POURCENTAGE']]
             ))
 
             fig_pvt.update_layout(
@@ -669,10 +675,10 @@ if st.session_state.get("reporting_type") == "journalier":
                     x=0.5,
                     y=0.95
                 ),
-                xaxis_title='Nombre de ventes',
+                xaxis_title='Réalisation',
                 yaxis_title='',
                 template='plotly_white',
-                height=350,  # Hauteur réduite pour 5 éléments
+                height=300,  # Réduit de 350 à 300
                 margin=dict(t=70, b=30, l=250, r=30),  # Grande marge gauche pour les longs labels
                 font=dict(family='Poppins', size=10),
                 hoverlabel=dict(
@@ -707,8 +713,13 @@ if st.session_state.get("reporting_type") == "journalier":
             st.markdown('<h4 style="text-align: center; color: #FF5000;">👥 Top 10 Vendeurs (VTO)</h4>', unsafe_allow_html=True)
 
             # Top 10 VTO
-            df_top10 = df_reporting.nlargest(10, 'TOTAL_SIM').copy()
-            df_top10 = df_top10.sort_values('TOTAL_SIM', ascending=False)
+            df_top10 = df_reporting.nlargest(10, 'REALISATION').copy()
+
+            # Calculer le pourcentage pour le top 10
+            total_top10_ventes = df_top10['REALISATION'].sum()
+            df_top10['POURCENTAGE'] = (df_top10['REALISATION'] / total_top10_ventes * 100).round(1)
+
+            df_top10 = df_top10.sort_values('REALISATION', ascending=False)
 
             # Créer un label complet
             def create_vto_label(prenom, nom, pvt, dr, max_length=20):
@@ -733,18 +744,19 @@ if st.session_state.get("reporting_type") == "journalier":
 
             fig_top10.add_trace(go.Bar(
                 x=df_top10['LABEL'],
-                y=df_top10['TOTAL_SIM'],
+                y=df_top10['REALISATION'],
                 marker_color='#FF5000',
-                text=df_top10['TOTAL_SIM'],
+                text=df_top10.apply(lambda row: f"{row['REALISATION']}<br>({row['POURCENTAGE']}%)", axis=1),
                 textposition='outside',
                 textfont=dict(size=10, color='#333'),
                 marker_line=dict(color='white', width=1),
                 hovertemplate="<b>%{customdata[0]} %{customdata[1]}</b><br>" +
-                             "Ventes: %{y}<br>" +
+                             "Réalisation: %{y}<br>" +
                              "PVT: %{customdata[2]}<br>" +
                              "DR: %{customdata[3]}<br>" +
+                             "Pourcentage: %{customdata[4]}%<br>" +
                              "<extra></extra>",
-                customdata=df_top10[['PRENOM_VENDEUR', 'NOM_VENDEUR', 'PVT', 'DR']]
+                customdata=df_top10[['PRENOM_VENDEUR', 'NOM_VENDEUR', 'PVT', 'DR', 'POURCENTAGE']]
             ))
 
             fig_top10.update_layout(
@@ -755,9 +767,9 @@ if st.session_state.get("reporting_type") == "journalier":
                     y=0.95
                 ),
                 xaxis_title='',
-                yaxis_title='Nombre de ventes',
+                yaxis_title='Réalisation',
                 template='plotly_white',
-                height=400,
+                height=350,  # Réduit de 400 à 350
                 margin=dict(t=70, b=100, l=60, r=30),
                 font=dict(family='Poppins', size=10),
                 hoverlabel=dict(
@@ -810,9 +822,10 @@ if st.session_state.get("reporting_type") == "journalier":
             """, unsafe_allow_html=True)
 
         with col2:
-            meilleur_dr = df_drv.nlargest(1, 'TOTAL_SIM')
+            meilleur_dr = df_drv.nlargest(1, 'REALISATION')
             meilleur_dr_nom = meilleur_dr['DR'].iloc[0] if not meilleur_dr.empty else "N/A"
-            meilleur_dr_ventes = meilleur_dr['TOTAL_SIM'].iloc[0] if not meilleur_dr.empty else 0
+            meilleur_dr_ventes = meilleur_dr['REALISATION'].iloc[0] if not meilleur_dr.empty else 0
+            meilleur_dr_pourcentage = meilleur_dr['POURCENTAGE'].iloc[0] if not meilleur_dr.empty else 0
 
             st.markdown(f"""
             <div style="
@@ -824,14 +837,15 @@ if st.session_state.get("reporting_type") == "journalier":
                 text-align: center;
             ">
                 <div style="font-size: 1.8rem; font-weight: 700; color: #009CA6;">{meilleur_dr_nom}</div>
-                <div style="font-size: 0.9rem; color: #666; margin-top: 0.5rem;">🏆 Meilleure DR</div>
+                <div style="font-size: 0.9rem; color: #666; margin-top: 0.5rem;">🏆 Meilleure DR ({meilleur_dr_pourcentage}%)</div>
             </div>
             """, unsafe_allow_html=True)
 
         with col3:
-            meilleur_pvt = df_top_pvt.nlargest(1, 'TOTAL_SIM')
+            meilleur_pvt = df_top_pvt.nlargest(1, 'REALISATION')
             meilleur_pvt_nom = meilleur_pvt['PVT'].iloc[0][:15] + "..." if not meilleur_pvt.empty and len(meilleur_pvt['PVT'].iloc[0]) > 15 else (meilleur_pvt['PVT'].iloc[0] if not meilleur_pvt.empty else "N/A")
-            meilleur_pvt_ventes = meilleur_pvt['TOTAL_SIM'].iloc[0] if not meilleur_pvt.empty else 0
+            meilleur_pvt_ventes = meilleur_pvt['REALISATION'].iloc[0] if not meilleur_pvt.empty else 0
+            meilleur_pvt_pourcentage = meilleur_pvt['POURCENTAGE'].iloc[0] if not meilleur_pvt.empty else 0
 
             st.markdown(f"""
             <div style="
@@ -843,14 +857,15 @@ if st.session_state.get("reporting_type") == "journalier":
                 text-align: center;
             ">
                 <div style="font-size: 1.8rem; font-weight: 700; color: #00D4AA;">{meilleur_pvt_nom}</div>
-                <div style="font-size: 0.9rem; color: #666; margin-top: 0.5rem;">🏪 Meilleur PVT</div>
+                <div style="font-size: 0.9rem; color: #666; margin-top: 0.5rem;">🏪 Meilleur PVT ({meilleur_pvt_pourcentage}%)</div>
             </div>
             """, unsafe_allow_html=True)
 
         with col4:
-            meilleur_vto = df_top10.nlargest(1, 'TOTAL_SIM')
+            meilleur_vto = df_top10.nlargest(1, 'REALISATION')
             meilleur_vto_nom = meilleur_vto['PRENOM_VENDEUR'].iloc[0][:8] + "..." if not meilleur_vto.empty and len(meilleur_vto['PRENOM_VENDEUR'].iloc[0]) > 8 else (meilleur_vto['PRENOM_VENDEUR'].iloc[0] if not meilleur_vto.empty else "N/A")
-            meilleur_vto_ventes = meilleur_vto['TOTAL_SIM'].iloc[0] if not meilleur_vto.empty else 0
+            meilleur_vto_ventes = meilleur_vto['REALISATION'].iloc[0] if not meilleur_vto.empty else 0
+            meilleur_vto_pourcentage = meilleur_vto['POURCENTAGE'].iloc[0] if not meilleur_vto.empty else 0
 
             st.markdown(f"""
             <div style="
@@ -862,7 +877,7 @@ if st.session_state.get("reporting_type") == "journalier":
                 text-align: center;
             ">
                 <div style="font-size: 1.8rem; font-weight: 700; color: #FF5000;">{meilleur_vto_nom}</div>
-                <div style="font-size: 0.9rem; color: #666; margin-top: 0.5rem;">👤 Meilleur VTO</div>
+                <div style="font-size: 0.9rem; color: #666; margin-top: 0.5rem;">👤 Meilleur VTO ({meilleur_vto_pourcentage}%)</div>
             </div>
             """, unsafe_allow_html=True)
 
@@ -872,24 +887,24 @@ if st.session_state.get("reporting_type") == "journalier":
         # 🧾 Export Excel AVEC LES DEUX TABLEAUX
         try:
             # Créer les DataFrames avec totaux
-            total_sim = int(df_pvt_summary['TOTAL_SIM'].sum())
+            total_realisation = int(df_pvt_summary['REALISATION'].sum())
             total_objectif = int(df_pvt_summary['OBJECTIF'].sum())
-            total_tr = round((total_sim / total_objectif * 100), 1)
+            total_ro = round((total_realisation / total_objectif * 100), 1)
 
             df_pvt_summary_export = df_pvt_summary.copy().reset_index(drop=True)
             new_row_pvt = {
                 'DR': '',
                 'PVT': 'TOTAL',
-                'TOTAL_SIM': total_sim,
+                'REALISATION': total_realisation,
                 'OBJECTIF': total_objectif,
-                'TR': f'{total_tr}%'
+                'R/O': f'{total_ro}%'
             }
             df_pvt_summary_export = pd.concat([
                 df_pvt_summary_export,
                 pd.DataFrame([new_row_pvt])
             ], ignore_index=True)
 
-            total_sim_vto = int(df_reporting['TOTAL_SIM'].sum())
+            total_realisation_vto = int(df_reporting['REALISATION'].sum())
             df_reporting_export = df_reporting.copy().reset_index(drop=True)
             new_row_vto = {
                 'DR': '',
@@ -897,7 +912,7 @@ if st.session_state.get("reporting_type") == "journalier":
                 'PRENOM_VENDEUR': '',
                 'NOM_VENDEUR': '',
                 'LOGIN': 'TOTAL',
-                'TOTAL_SIM': total_sim_vto
+                'REALISATION': total_realisation_vto
             }
             df_reporting_export = pd.concat([
                 df_reporting_export,
@@ -916,15 +931,15 @@ if st.session_state.get("reporting_type") == "journalier":
             # ============================================
             # NOUVEAU : COULEURS POUR LA COLORATION CONDITIONNELLE
             # ============================================
-            # Vert pour TR >= 100%
+            # Vert pour R/O >= 100%
             vert_fill = PatternFill(start_color="C6EFCE", end_color="C6EFCE", fill_type="solid")
             vert_font = Font(color="006100")
 
-            # Jaune pour TR entre 80% et 99%
+            # Jaune pour R/O entre 80% et 99%
             jaune_fill = PatternFill(start_color="FFEB9C", end_color="FFEB9C", fill_type="solid")
             jaune_font = Font(color="9C6500")
 
-            # Rouge pour TR < 80%
+            # Rouge pour R/O < 80%
             rouge_fill = PatternFill(start_color="FFC7CE", end_color="FFC7CE", fill_type="solid")
             rouge_font = Font(color="9C0006")
 
@@ -947,6 +962,10 @@ if st.session_state.get("reporting_type") == "journalier":
                 cell.font = header_font
                 cell.alignment = Alignment(horizontal='center', vertical='center')
                 cell.border = thin_border
+
+            # Mettre à jour les en-têtes
+            ws_pvt['C1'].value = 'REALISATION'
+            ws_pvt['E1'].value = 'R/O'
 
             drv_ranges_pvt = []
             current_drv = None
@@ -973,29 +992,29 @@ if st.session_state.get("reporting_type") == "journalier":
             ws_pvt.cell(ws_pvt.max_row, 1).value = 'TOTAL'
 
             # ============================================
-            # NOUVEAU : APPLIQUER LA COLORATION CONDITIONNELLE AUX TR
+            # NOUVEAU : APPLIQUER LA COLORATION CONDITIONNELLE AUX R/O
             # ============================================
             for row_idx in range(2, ws_pvt.max_row + 1):
                 for col_idx in range(1, 6):
                     cell = ws_pvt.cell(row_idx, col_idx)
                     cell.border = thin_border
 
-                    # Appliquer le formatage spécial pour la colonne TR (colonne E)
-                    if col_idx == 5 and row_idx < ws_pvt.max_row:  # Colonne TR, sauf la ligne TOTAL
-                        tr_value = cell.value
-                        if tr_value and isinstance(tr_value, str) and tr_value.endswith('%'):
+                    # Appliquer le formatage spécial pour la colonne R/O (colonne E)
+                    if col_idx == 5 and row_idx < ws_pvt.max_row:  # Colonne R/O, sauf la ligne TOTAL
+                        ro_value = cell.value
+                        if ro_value and isinstance(ro_value, str) and ro_value.endswith('%'):
                             try:
                                 # Extraire la valeur numérique du pourcentage
-                                tr_numeric = float(tr_value.strip('%'))
+                                ro_numeric = float(ro_value.strip('%'))
 
                                 # Appliquer la couleur selon la valeur
-                                if tr_numeric >= 100:
+                                if ro_numeric >= 100:
                                     cell.fill = vert_fill
                                     cell.font = vert_font
-                                elif 80 <= tr_numeric < 100:
+                                elif 80 <= ro_numeric < 100:
                                     cell.fill = jaune_fill
                                     cell.font = jaune_font
-                                else:  # tr_numeric < 80
+                                else:  # ro_numeric < 80
                                     cell.fill = rouge_fill
                                     cell.font = rouge_font
                             except (ValueError, AttributeError):
@@ -1033,6 +1052,9 @@ if st.session_state.get("reporting_type") == "journalier":
                 cell.font = header_font
                 cell.alignment = Alignment(horizontal='center', vertical='center')
                 cell.border = thin_border
+
+            # Mettre à jour les en-têtes
+            ws['F1'].value = 'REALISATION'
 
             drv_ranges = []
             current_drv = None
@@ -1145,7 +1167,7 @@ if st.session_state.get("reporting_type") == "hebdomadaire":
         details = ["En Cours-Identification", "Identifie", "Identifie Photo"]
 
         column_mapping = {
-            'MSISDN': 'TOTAL_SIM',
+            'MSISDN': 'REALISATION',
             'ACCUEIL_VENDEUR': 'PVT',
             'LOGIN_VENDEUR': 'LOGIN',
             'AGENCE_VENDEUR': 'DR'
@@ -1203,18 +1225,18 @@ if st.session_state.get("reporting_type") == "hebdomadaire":
         st.markdown('<div class="section-title">📊 Résumé par PVT</div>', unsafe_allow_html=True)
 
         df_pvt_summary = df_filtre.groupby(['DR', 'PVT'], as_index=False).size()
-        df_pvt_summary.columns = ['DR', 'PVT', 'TOTAL_SIM']
+        df_pvt_summary.columns = ['DR', 'PVT', 'REALISATION']
         df_pvt_summary['OBJECTIF'] = 240
-        df_pvt_summary['TR'] = (df_pvt_summary['TOTAL_SIM'] / df_pvt_summary['OBJECTIF'] * 100).round(0).astype(int).astype(str) + '%'
+        df_pvt_summary['R/O'] = (df_pvt_summary['REALISATION'] / df_pvt_summary['OBJECTIF'] * 100).round(0).astype(int).astype(str) + '%'
 
         df_pvt_summary = df_pvt_summary.sort_values(['DR', 'PVT'])
 
-        total_sim = df_pvt_summary['TOTAL_SIM'].sum()
+        total_realisation = df_pvt_summary['REALISATION'].sum()
         total_objectif = df_pvt_summary['OBJECTIF'].sum()
-        total_tr = round((total_sim / total_objectif * 100), 1)
+        total_ro = round((total_realisation / total_objectif * 100), 1)
 
         df_pvt_summary_display = df_pvt_summary.copy()
-        df_pvt_summary_display.loc[len(df_pvt_summary_display)] = ['', 'TOTAL', total_sim, total_objectif, f'{total_tr}%']
+        df_pvt_summary_display.loc[len(df_pvt_summary_display)] = ['', 'TOTAL', total_realisation, total_objectif, f'{total_ro}%']
 
         st.dataframe(df_pvt_summary_display, use_container_width=True)
 
@@ -1224,12 +1246,12 @@ if st.session_state.get("reporting_type") == "hebdomadaire":
         st.markdown('<div class="section-title">📋 Détails par VTO</div>', unsafe_allow_html=True)
 
         df_reporting = df_filtre.groupby(['DR', 'PVT', 'PRENOM_VENDEUR', 'NOM_VENDEUR', 'LOGIN'], as_index=False).size()
-        df_reporting.columns = ['DR', 'PVT', 'PRENOM_VENDEUR', 'NOM_VENDEUR', 'LOGIN', 'TOTAL_SIM']
-        df_reporting = df_reporting.sort_values(['DR', 'PVT', 'TOTAL_SIM'], ascending=[True, True, False])
+        df_reporting.columns = ['DR', 'PVT', 'PRENOM_VENDEUR', 'NOM_VENDEUR', 'LOGIN', 'REALISATION']
+        df_reporting = df_reporting.sort_values(['DR', 'PVT', 'REALISATION'], ascending=[True, True, False])
 
-        total_sim_vto = df_reporting['TOTAL_SIM'].sum()
+        total_realisation_vto = df_reporting['REALISATION'].sum()
         df_reporting_display = df_reporting.copy()
-        df_reporting_display.loc[len(df_reporting_display)] = ['', '', '', '', 'TOTAL', total_sim_vto]
+        df_reporting_display.loc[len(df_reporting_display)] = ['', '', '', '', 'TOTAL', total_realisation_vto]
 
         st.dataframe(df_reporting_display, use_container_width=True)
 
@@ -1330,11 +1352,11 @@ if st.session_state.get("reporting_type") == "hebdomadaire":
         # Première ligne : Top DR (circulaire + barres VERTICALES)
         st.markdown('<h4 style="text-align: center; color: #FF7900;">🗺 Distribution par Direction Régionale</h4>', unsafe_allow_html=True)
 
-        df_drv = df_reporting.groupby('DR').agg({'TOTAL_SIM': 'sum'}).reset_index()
-        df_drv = df_drv.sort_values('TOTAL_SIM', ascending=False)
+        df_drv = df_reporting.groupby('DR').agg({'REALISATION': 'sum'}).reset_index()
+        df_drv = df_drv.sort_values('REALISATION', ascending=False)
 
-        total_ventes = df_drv['TOTAL_SIM'].sum()
-        df_drv['POURCENTAGE'] = (df_drv['TOTAL_SIM'] / total_ventes * 100).round(1)
+        total_ventes = df_drv['REALISATION'].sum()
+        df_drv['POURCENTAGE'] = (df_drv['REALISATION'] / total_ventes * 100).round(1)
 
         col_dr1, col_dr2 = st.columns(2)
 
@@ -1342,14 +1364,14 @@ if st.session_state.get("reporting_type") == "hebdomadaire":
             # Diagramme circulaire
             fig_pie_dr = px.pie(
                 df_drv,
-                values='TOTAL_SIM',
+                values='REALISATION',
                 names='DR',
                 title='Distribution des ventes par DR (Hebdomadaire)',
                 color_discrete_sequence=['#FF7900', '#FF5000', '#FF3000', '#E57200', '#CC6600', '#B35900'],
                 hole=0.3
             )
 
-            df_drv['LABEL'] = df_drv.apply(lambda row: f"{row['DR']}<br>{row['TOTAL_SIM']} ventes<br>({row['POURCENTAGE']}%)", axis=1)
+            df_drv['LABEL'] = df_drv.apply(lambda row: f"{row['DR']}<br>{row['REALISATION']} ventes<br>({row['POURCENTAGE']}%)", axis=1)
 
             fig_pie_dr.update_traces(
                 textposition='inside',
@@ -1358,7 +1380,7 @@ if st.session_state.get("reporting_type") == "hebdomadaire":
                 textfont_size=10,
                 marker=dict(line=dict(color='white', width=2)),
                 hovertemplate="<b>%{label}</b><br>" +
-                             "Ventes: %{value}<br>" +
+                             "Réalisation: %{value}<br>" +
                              "Pourcentage: %{percent}<br>" +
                              "<extra></extra>"
             )
@@ -1371,7 +1393,7 @@ if st.session_state.get("reporting_type") == "hebdomadaire":
                     y=0.95
                 ),
                 font=dict(family='Poppins', size=10),
-                height=400,
+                height=350,  # Réduit de 400 à 350
                 margin=dict(t=70, b=30, l=30, r=30),
                 showlegend=False,
                 hoverlabel=dict(
@@ -1395,18 +1417,18 @@ if st.session_state.get("reporting_type") == "hebdomadaire":
             # Diagramme à barres VERTICALES triées
             fig_bar_dr = go.Figure()
 
-            df_drv_bar = df_drv.sort_values('TOTAL_SIM', ascending=False)
+            df_drv_bar = df_drv.sort_values('REALISATION', ascending=False)
 
             fig_bar_dr.add_trace(go.Bar(
                 x=df_drv_bar['DR'],
-                y=df_drv_bar['TOTAL_SIM'],
+                y=df_drv_bar['REALISATION'],
                 marker_color='#FF7900',
-                text=df_drv_bar.apply(lambda row: f"{row['TOTAL_SIM']}", axis=1),
+                text=df_drv_bar.apply(lambda row: f"{row['REALISATION']}<br>({row['POURCENTAGE']}%)", axis=1),
                 textposition='outside',
                 textfont=dict(size=10, color='#333'),
                 textangle=0,
                 hovertemplate="<b>%{x}</b><br>" +
-                             "Ventes: %{y}<br>" +
+                             "Réalisation: %{y}<br>" +
                              "Pourcentage: %{customdata}%<br>" +
                              "<extra></extra>",
                 customdata=df_drv_bar['POURCENTAGE']
@@ -1420,9 +1442,9 @@ if st.session_state.get("reporting_type") == "hebdomadaire":
                     y=0.95
                 ),
                 xaxis_title='',
-                yaxis_title='Nombre de ventes',
+                yaxis_title='Réalisation',
                 template='plotly_white',
-                height=400,
+                height=350,  # Réduit de 400 à 350
                 margin=dict(t=70, b=30, l=60, r=30),
                 font=dict(family='Poppins', size=10),
                 hoverlabel=dict(
@@ -1459,9 +1481,14 @@ if st.session_state.get("reporting_type") == "hebdomadaire":
         with col_pvt:
             st.markdown('<h4 style="text-align: center; color: #009CA6;">🏪 Top 5 Points de Vente</h4>', unsafe_allow_html=True)
 
-            df_pvt_summary_chart = df_filtre.groupby(['DR', 'PVT']).agg({'TOTAL_SIM': 'sum'}).reset_index()
-            df_top_pvt = df_pvt_summary_chart.nlargest(5, 'TOTAL_SIM')  # Top 5 seulement
-            df_top_pvt = df_top_pvt.sort_values('TOTAL_SIM', ascending=True)
+            df_pvt_summary_chart = df_filtre.groupby(['DR', 'PVT']).agg({'REALISATION': 'sum'}).reset_index()
+            df_top_pvt = df_pvt_summary_chart.nlargest(5, 'REALISATION')  # Top 5 seulement
+
+            # Calculer le pourcentage pour le top 5
+            total_pvt_ventes = df_top_pvt['REALISATION'].sum()
+            df_top_pvt['POURCENTAGE'] = (df_top_pvt['REALISATION'] / total_pvt_ventes * 100).round(1)
+
+            df_top_pvt = df_top_pvt.sort_values('REALISATION', ascending=True)
 
             def create_pvt_label_hebdo(pvt_name, dr, max_length=25):
                 short_name = pvt_name[:max_length-3] + "..." if len(pvt_name) > max_length else pvt_name
@@ -1476,18 +1503,19 @@ if st.session_state.get("reporting_type") == "hebdomadaire":
 
             fig_pvt.add_trace(go.Bar(
                 y=df_top_pvt['LABEL'],
-                x=df_top_pvt['TOTAL_SIM'],
+                x=df_top_pvt['REALISATION'],
                 orientation='h',
                 marker_color='#009CA6',
-                # SUPPRIMÉ: text=df_top_pvt['TOTAL_SIM'],
-                # SUPPRIMÉ: textposition='outside',
-                # SUPPRIMÉ: textfont=dict(size=10, color='#333'),
-                # SUPPRIMÉ: textangle=0,
+                text=df_top_pvt.apply(lambda row: f"{row['REALISATION']}<br>({row['POURCENTAGE']}%)", axis=1),
+                textposition='outside',
+                textfont=dict(size=10, color='#333'),
+                textangle=0,
                 hovertemplate="<b>%{customdata[0]}</b><br>" +
-                             "Ventes: %{x}<br>" +
+                             "Réalisation: %{x}<br>" +
                              "DR: %{customdata[1]}<br>" +
+                             "Pourcentage: %{customdata[2]}%<br>" +
                              "<extra></extra>",
-                customdata=df_top_pvt[['PVT', 'DR']]
+                customdata=df_top_pvt[['PVT', 'DR', 'POURCENTAGE']]
             ))
 
             fig_pvt.update_layout(
@@ -1497,10 +1525,10 @@ if st.session_state.get("reporting_type") == "hebdomadaire":
                     x=0.5,
                     y=0.95
                 ),
-                xaxis_title='Nombre de ventes',
+                xaxis_title='Réalisation',
                 yaxis_title='',
                 template='plotly_white',
-                height=350,  # Hauteur réduite pour 5 éléments
+                height=300,  # Réduit de 350 à 300
                 margin=dict(t=70, b=30, l=250, r=30),
                 font=dict(family='Poppins', size=10),
                 hoverlabel=dict(
@@ -1532,8 +1560,13 @@ if st.session_state.get("reporting_type") == "hebdomadaire":
         with col_vto:
             st.markdown('<h4 style="text-align: center; color: #FF5000;">👥 Top 10 Vendeurs (VTO)</h4>', unsafe_allow_html=True)
 
-            df_top10 = df_reporting.nlargest(10, 'TOTAL_SIM').copy()
-            df_top10 = df_top10.sort_values('TOTAL_SIM', ascending=False)
+            df_top10 = df_reporting.nlargest(10, 'REALISATION').copy()
+
+            # Calculer le pourcentage pour le top 10
+            total_top10_ventes = df_top10['REALISATION'].sum()
+            df_top10['POURCENTAGE'] = (df_top10['REALISATION'] / total_top10_ventes * 100).round(1)
+
+            df_top10 = df_top10.sort_values('REALISATION', ascending=False)
 
             def create_vto_label_hebdo(prenom, nom, pvt, dr, max_length=20):
                 nom_complet = f"{prenom} {nom}"
@@ -1556,18 +1589,19 @@ if st.session_state.get("reporting_type") == "hebdomadaire":
 
             fig_top10.add_trace(go.Bar(
                 x=df_top10['LABEL'],
-                y=df_top10['TOTAL_SIM'],
+                y=df_top10['REALISATION'],
                 marker_color='#FF5000',
-                text=df_top10['TOTAL_SIM'],
+                text=df_top10.apply(lambda row: f"{row['REALISATION']}<br>({row['POURCENTAGE']}%)", axis=1),
                 textposition='outside',
                 textfont=dict(size=10, color='#333'),
                 marker_line=dict(color='white', width=1),
                 hovertemplate="<b>%{customdata[0]} %{customdata[1]}</b><br>" +
-                             "Ventes: %{y}<br>" +
+                             "Réalisation: %{y}<br>" +
                              "PVT: %{customdata[2]}<br>" +
                              "DR: %{customdata[3]}<br>" +
+                             "Pourcentage: %{customdata[4]}%<br>" +
                              "<extra></extra>",
-                customdata=df_top10[['PRENOM_VENDEUR', 'NOM_VENDEUR', 'PVT', 'DR']]
+                customdata=df_top10[['PRENOM_VENDEUR', 'NOM_VENDEUR', 'PVT', 'DR', 'POURCENTAGE']]
             ))
 
             fig_top10.update_layout(
@@ -1578,9 +1612,9 @@ if st.session_state.get("reporting_type") == "hebdomadaire":
                     y=0.95
                 ),
                 xaxis_title='',
-                yaxis_title='Nombre de ventes',
+                yaxis_title='Réalisation',
                 template='plotly_white',
-                height=400,
+                height=350,  # Réduit de 400 à 350
                 margin=dict(t=70, b=100, l=60, r=30),
                 font=dict(family='Poppins', size=10),
                 hoverlabel=dict(
@@ -1632,9 +1666,10 @@ if st.session_state.get("reporting_type") == "hebdomadaire":
             """, unsafe_allow_html=True)
 
         with col2:
-            meilleur_dr = df_drv.nlargest(1, 'TOTAL_SIM')
+            meilleur_dr = df_drv.nlargest(1, 'REALISATION')
             meilleur_dr_nom = meilleur_dr['DR'].iloc[0] if not meilleur_dr.empty else "N/A"
-            meilleur_dr_ventes = meilleur_dr['TOTAL_SIM'].iloc[0] if not meilleur_dr.empty else 0
+            meilleur_dr_ventes = meilleur_dr['REALISATION'].iloc[0] if not meilleur_dr.empty else 0
+            meilleur_dr_pourcentage = meilleur_dr['POURCENTAGE'].iloc[0] if not meilleur_dr.empty else 0
 
             st.markdown(f"""
             <div style="
@@ -1646,14 +1681,15 @@ if st.session_state.get("reporting_type") == "hebdomadaire":
                 text-align: center;
             ">
                 <div style="font-size: 1.8rem; font-weight: 700; color: #009CA6;">{meilleur_dr_nom}</div>
-                <div style="font-size: 0.9rem; color: #666; margin-top: 0.5rem;">🏆 Meilleure DR</div>
+                <div style="font-size: 0.9rem; color: #666; margin-top: 0.5rem;">🏆 Meilleure DR ({meilleur_dr_pourcentage}%)</div>
             </div>
             """, unsafe_allow_html=True)
 
         with col3:
-            meilleur_pvt = df_top_pvt.nlargest(1, 'TOTAL_SIM')
+            meilleur_pvt = df_top_pvt.nlargest(1, 'REALISATION')
             meilleur_pvt_nom = meilleur_pvt['PVT'].iloc[0][:15] + "..." if not meilleur_pvt.empty and len(meilleur_pvt['PVT'].iloc[0]) > 15 else (meilleur_pvt['PVT'].iloc[0] if not meilleur_pvt.empty else "N/A")
-            meilleur_pvt_ventes = meilleur_pvt['TOTAL_SIM'].iloc[0] if not meilleur_pvt.empty else 0
+            meilleur_pvt_ventes = meilleur_pvt['REALISATION'].iloc[0] if not meilleur_pvt.empty else 0
+            meilleur_pvt_pourcentage = meilleur_pvt['POURCENTAGE'].iloc[0] if not meilleur_pvt.empty else 0
 
             st.markdown(f"""
             <div style="
@@ -1665,14 +1701,15 @@ if st.session_state.get("reporting_type") == "hebdomadaire":
                 text-align: center;
             ">
                 <div style="font-size: 1.8rem; font-weight: 700; color: #00D4AA;">{meilleur_pvt_nom}</div>
-                <div style="font-size: 0.9rem; color: #666; margin-top: 0.5rem;">🏪 Meilleur PVT</div>
+                <div style="font-size: 0.9rem; color: #666; margin-top: 0.5rem;">🏪 Meilleur PVT ({meilleur_pvt_pourcentage}%)</div>
             </div>
             """, unsafe_allow_html=True)
 
         with col4:
-            meilleur_vto = df_top10.nlargest(1, 'TOTAL_SIM')
+            meilleur_vto = df_top10.nlargest(1, 'REALISATION')
             meilleur_vto_nom = meilleur_vto['PRENOM_VENDEUR'].iloc[0][:8] + "..." if not meilleur_vto.empty and len(meilleur_vto['PRENOM_VENDEUR'].iloc[0]) > 8 else (meilleur_vto['PRENOM_VENDEUR'].iloc[0] if not meilleur_vto.empty else "N/A")
-            meilleur_vto_ventes = meilleur_vto['TOTAL_SIM'].iloc[0] if not meilleur_vto.empty else 0
+            meilleur_vto_ventes = meilleur_vto['REALISATION'].iloc[0] if not meilleur_vto.empty else 0
+            meilleur_vto_pourcentage = meilleur_vto['POURCENTAGE'].iloc[0] if not meilleur_vto.empty else 0
 
             st.markdown(f"""
             <div style="
@@ -1684,7 +1721,7 @@ if st.session_state.get("reporting_type") == "hebdomadaire":
                 text-align: center;
             ">
                 <div style="font-size: 1.8rem; font-weight: 700; color: #FF5000;">{meilleur_vto_nom}</div>
-                <div style="font-size: 0.9rem; color: #666; margin-top: 0.5rem;">👤 Meilleur VTO</div>
+                <div style="font-size: 0.9rem; color: #666; margin-top: 0.5rem;">👤 Meilleur VTO ({meilleur_vto_pourcentage}%)</div>
             </div>
             """, unsafe_allow_html=True)
 
@@ -1694,24 +1731,24 @@ if st.session_state.get("reporting_type") == "hebdomadaire":
         # 🧾 Export Excel AVEC LES DEUX TABLEAUX
         try:
             # Créer les DataFrames avec totaux
-            total_sim = int(df_pvt_summary['TOTAL_SIM'].sum())
+            total_realisation = int(df_pvt_summary['REALISATION'].sum())
             total_objectif = int(df_pvt_summary['OBJECTIF'].sum())
-            total_tr = round((total_sim / total_objectif * 100), 1)
+            total_ro = round((total_realisation / total_objectif * 100), 1)
 
             df_pvt_summary_export = df_pvt_summary.copy().reset_index(drop=True)
             new_row_pvt = {
                 'DR': '',
                 'PVT': 'TOTAL',
-                'TOTAL_SIM': total_sim,
+                'REALISATION': total_realisation,
                 'OBJECTIF': total_objectif,
-                'TR': f'{total_tr}%'
+                'R/O': f'{total_ro}%'
             }
             df_pvt_summary_export = pd.concat([
                 df_pvt_summary_export,
                 pd.DataFrame([new_row_pvt])
             ], ignore_index=True)
 
-            total_sim_vto = int(df_reporting['TOTAL_SIM'].sum())
+            total_realisation_vto = int(df_reporting['REALISATION'].sum())
             df_reporting_export = df_reporting.copy().reset_index(drop=True)
             new_row_vto = {
                 'DR': '',
@@ -1719,7 +1756,7 @@ if st.session_state.get("reporting_type") == "hebdomadaire":
                 'PRENOM_VENDEUR': '',
                 'NOM_VENDEUR': '',
                 'LOGIN': 'TOTAL',
-                'TOTAL_SIM': total_sim_vto
+                'REALISATION': total_realisation_vto
             }
             df_reporting_export = pd.concat([
                 df_reporting_export,
@@ -1738,15 +1775,15 @@ if st.session_state.get("reporting_type") == "hebdomadaire":
             # ============================================
             # NOUVEAU : COULEURS POUR LA COLORATION CONDITIONNELLE
             # ============================================
-            # Vert pour TR >= 100%
+            # Vert pour R/O >= 100%
             vert_fill = PatternFill(start_color="C6EFCE", end_color="C6EFCE", fill_type="solid")
             vert_font = Font(color="006100")
 
-            # Jaune pour TR entre 80% et 99%
+            # Jaune pour R/O entre 80% et 99%
             jaune_fill = PatternFill(start_color="FFEB9C", end_color="FFEB9C", fill_type="solid")
             jaune_font = Font(color="9C6500")
 
-            # Rouge pour TR < 80%
+            # Rouge pour R/O < 80%
             rouge_fill = PatternFill(start_color="FFC7CE", end_color="FFC7CE", fill_type="solid")
             rouge_font = Font(color="9C0006")
 
@@ -1769,6 +1806,10 @@ if st.session_state.get("reporting_type") == "hebdomadaire":
                 cell.font = header_font
                 cell.alignment = Alignment(horizontal='center', vertical='center')
                 cell.border = thin_border
+
+            # Mettre à jour les en-têtes
+            ws_pvt['C1'].value = 'REALISATION'
+            ws_pvt['E1'].value = 'R/O'
 
             drv_ranges_pvt = []
             current_drv = None
@@ -1795,29 +1836,29 @@ if st.session_state.get("reporting_type") == "hebdomadaire":
             ws_pvt.cell(ws_pvt.max_row, 1).value = 'TOTAL'
 
             # ============================================
-            # NOUVEAU : APPLIQUER LA COLORATION CONDITIONNELLE AUX TR
+            # NOUVEAU : APPLIQUER LA COLORATION CONDITIONNELLE AUX R/O
             # ============================================
             for row_idx in range(2, ws_pvt.max_row + 1):
                 for col_idx in range(1, 6):
                     cell = ws_pvt.cell(row_idx, col_idx)
                     cell.border = thin_border
 
-                    # Appliquer le formatage spécial pour la colonne TR (colonne E)
-                    if col_idx == 5 and row_idx < ws_pvt.max_row:  # Colonne TR, sauf la ligne TOTAL
-                        tr_value = cell.value
-                        if tr_value and isinstance(tr_value, str) and tr_value.endswith('%'):
+                    # Appliquer le formatage spécial pour la colonne R/O (colonne E)
+                    if col_idx == 5 and row_idx < ws_pvt.max_row:  # Colonne R/O, sauf la ligne TOTAL
+                        ro_value = cell.value
+                        if ro_value and isinstance(ro_value, str) and ro_value.endswith('%'):
                             try:
                                 # Extraire la valeur numérique du pourcentage
-                                tr_numeric = float(tr_value.strip('%'))
+                                ro_numeric = float(ro_value.strip('%'))
 
                                 # Appliquer la couleur selon la valeur
-                                if tr_numeric >= 100:
+                                if ro_numeric >= 100:
                                     cell.fill = vert_fill
                                     cell.font = vert_font
-                                elif 80 <= tr_numeric < 100:
+                                elif 80 <= ro_numeric < 100:
                                     cell.fill = jaune_fill
                                     cell.font = jaune_font
-                                else:  # tr_numeric < 80
+                                else:  # ro_numeric < 80
                                     cell.fill = rouge_fill
                                     cell.font = rouge_font
                             except (ValueError, AttributeError):
@@ -1855,6 +1896,9 @@ if st.session_state.get("reporting_type") == "hebdomadaire":
                 cell.font = header_font
                 cell.alignment = Alignment(horizontal='center', vertical='center')
                 cell.border = thin_border
+
+            # Mettre à jour les en-têtes
+            ws['F1'].value = 'REALISATION'
 
             drv_ranges = []
             current_drv = None
