@@ -4,5 +4,6 @@ openpyxl
 gspread
 google-auth
 oauth2client
-
-
+plotly
+kaleido
+Pillow
