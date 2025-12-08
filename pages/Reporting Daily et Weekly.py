@@ -913,7 +913,24 @@ if st.session_state.get("reporting_type") == "journalier":
             buffer_output.seek(0)
             wb = load_workbook(buffer_output)
 
+            # ============================================
+            # NOUVEAU : COULEURS POUR LA COLORATION CONDITIONNELLE
+            # ============================================
+            # Vert pour TR >= 100%
+            vert_fill = PatternFill(start_color="C6EFCE", end_color="C6EFCE", fill_type="solid")
+            vert_font = Font(color="006100")
+
+            # Jaune pour TR entre 80% et 99%
+            jaune_fill = PatternFill(start_color="FFEB9C", end_color="FFEB9C", fill_type="solid")
+            jaune_font = Font(color="9C6500")
+
+            # Rouge pour TR < 80%
+            rouge_fill = PatternFill(start_color="FFC7CE", end_color="FFC7CE", fill_type="solid")
+            rouge_font = Font(color="9C0006")
+
+            # ============================================
             # Formater la feuille "Résumé PVT"
+            # ============================================
             ws_pvt = wb['Résumé PVT']
 
             header_fill = PatternFill(start_color="D9D9D9", end_color="D9D9D9", fill_type="solid")
@@ -955,12 +972,36 @@ if st.session_state.get("reporting_type") == "journalier":
             ws_pvt.merge_cells(f'A{ws_pvt.max_row}:B{ws_pvt.max_row}')
             ws_pvt.cell(ws_pvt.max_row, 1).value = 'TOTAL'
 
+            # ============================================
+            # NOUVEAU : APPLIQUER LA COLORATION CONDITIONNELLE AUX TR
+            # ============================================
             for row_idx in range(2, ws_pvt.max_row + 1):
                 for col_idx in range(1, 6):
                     cell = ws_pvt.cell(row_idx, col_idx)
                     cell.border = thin_border
 
-                    if row_idx == ws_pvt.max_row:
+                    # Appliquer le formatage spécial pour la colonne TR (colonne E)
+                    if col_idx == 5 and row_idx < ws_pvt.max_row:  # Colonne TR, sauf la ligne TOTAL
+                        tr_value = cell.value
+                        if tr_value and isinstance(tr_value, str) and tr_value.endswith('%'):
+                            try:
+                                # Extraire la valeur numérique du pourcentage
+                                tr_numeric = float(tr_value.strip('%'))
+
+                                # Appliquer la couleur selon la valeur
+                                if tr_numeric >= 100:
+                                    cell.fill = vert_fill
+                                    cell.font = vert_font
+                                elif 80 <= tr_numeric < 100:
+                                    cell.fill = jaune_fill
+                                    cell.font = jaune_font
+                                else:  # tr_numeric < 80
+                                    cell.fill = rouge_fill
+                                    cell.font = rouge_font
+                            except (ValueError, AttributeError):
+                                pass  # Si conversion échoue, ne pas appliquer de couleur
+
+                    if row_idx == ws_pvt.max_row:  # Ligne TOTAL
                         cell.font = Font(bold=True, size=11)
                         cell.fill = PatternFill(start_color="FFE5CC", end_color="FFE5CC", fill_type="solid")
                         if col_idx in [1, 3, 4, 5]:
@@ -982,7 +1023,9 @@ if st.session_state.get("reporting_type") == "journalier":
             ws_pvt.column_dimensions['E'].width = 10
             ws_pvt.freeze_panes = 'A2'
 
+            # ============================================
             # Formater la feuille "Détails VTO"
+            # ============================================
             ws = wb['Détails VTO']
 
             for cell in ws[1]:
@@ -1692,7 +1735,24 @@ if st.session_state.get("reporting_type") == "hebdomadaire":
             buffer_output.seek(0)
             wb = load_workbook(buffer_output)
 
+            # ============================================
+            # NOUVEAU : COULEURS POUR LA COLORATION CONDITIONNELLE
+            # ============================================
+            # Vert pour TR >= 100%
+            vert_fill = PatternFill(start_color="C6EFCE", end_color="C6EFCE", fill_type="solid")
+            vert_font = Font(color="006100")
+
+            # Jaune pour TR entre 80% et 99%
+            jaune_fill = PatternFill(start_color="FFEB9C", end_color="FFEB9C", fill_type="solid")
+            jaune_font = Font(color="9C6500")
+
+            # Rouge pour TR < 80%
+            rouge_fill = PatternFill(start_color="FFC7CE", end_color="FFC7CE", fill_type="solid")
+            rouge_font = Font(color="9C0006")
+
+            # ============================================
             # Formater la feuille "Résumé PVT"
+            # ============================================
             ws_pvt = wb['Résumé PVT']
 
             header_fill = PatternFill(start_color="D9D9D9", end_color="D9D9D9", fill_type="solid")
@@ -1734,12 +1794,36 @@ if st.session_state.get("reporting_type") == "hebdomadaire":
             ws_pvt.merge_cells(f'A{ws_pvt.max_row}:B{ws_pvt.max_row}')
             ws_pvt.cell(ws_pvt.max_row, 1).value = 'TOTAL'
 
+            # ============================================
+            # NOUVEAU : APPLIQUER LA COLORATION CONDITIONNELLE AUX TR
+            # ============================================
             for row_idx in range(2, ws_pvt.max_row + 1):
                 for col_idx in range(1, 6):
                     cell = ws_pvt.cell(row_idx, col_idx)
                     cell.border = thin_border
 
-                    if row_idx == ws_pvt.max_row:
+                    # Appliquer le formatage spécial pour la colonne TR (colonne E)
+                    if col_idx == 5 and row_idx < ws_pvt.max_row:  # Colonne TR, sauf la ligne TOTAL
+                        tr_value = cell.value
+                        if tr_value and isinstance(tr_value, str) and tr_value.endswith('%'):
+                            try:
+                                # Extraire la valeur numérique du pourcentage
+                                tr_numeric = float(tr_value.strip('%'))
+
+                                # Appliquer la couleur selon la valeur
+                                if tr_numeric >= 100:
+                                    cell.fill = vert_fill
+                                    cell.font = vert_font
+                                elif 80 <= tr_numeric < 100:
+                                    cell.fill = jaune_fill
+                                    cell.font = jaune_font
+                                else:  # tr_numeric < 80
+                                    cell.fill = rouge_fill
+                                    cell.font = rouge_font
+                            except (ValueError, AttributeError):
+                                pass  # Si conversion échoue, ne pas appliquer de couleur
+
+                    if row_idx == ws_pvt.max_row:  # Ligne TOTAL
                         cell.font = Font(bold=True, size=11)
                         cell.fill = PatternFill(start_color="FFE5CC", end_color="FFE5CC", fill_type="solid")
                         if col_idx in [1, 3, 4, 5]:
@@ -1761,7 +1845,9 @@ if st.session_state.get("reporting_type") == "hebdomadaire":
             ws_pvt.column_dimensions['E'].width = 10
             ws_pvt.freeze_panes = 'A2'
 
+            # ============================================
             # Formater la feuille "Détails VTO"
+            # ============================================
             ws = wb['Détails VTO']
 
             for cell in ws[1]:
