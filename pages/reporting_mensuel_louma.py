@@ -125,7 +125,7 @@ st.markdown("""
 
     .stDownloadButton > button:hover {
         background: linear-gradient(135deg, #00B890 0%, #009A7A 100%);
-        box-shadow: 0 6px 18px rgba(0, 212, 170, 0.5);
+        boxshadow: 0 6px 18px rgba(0, 212, 170, 0.5);
         transform: translateY(-2px);
     }
 
@@ -229,13 +229,10 @@ DRV_MAPPING = {
 # ====================
 def load_vto():
     """Fonction pour charger les données VTO"""
-    # Créer un DataFrame exemple si le vrai load_vto n'est pas disponible
     try:
-        # Essayez d'importer le vrai module
         from utils import load_vto as real_load_vto
         return real_load_vto()
     except:
-        # Créer un DataFrame exemple pour les tests
         data = {
             'LOGIN': ['vto001', 'vto002', 'vto003', 'vto004', 'vto005', 'vto006', 'vto007', 'vto008'],
             'NOM': ['DIOUF', 'NDIAYE', 'SARR', 'FALL', 'DIOP', 'GUEYE', 'MBOW', 'SY'],
@@ -250,7 +247,6 @@ def load_vto():
 # ====================
 def process_monthly_data(df, vto_df, details, objectif_pvt=960):
     """Fonction pour traiter les données mensuelles"""
-    # Mapping des colonnes attendues
     column_mapping = {
         'MSISDN': 'REALISATION',
         'ACCUEIL_VENDEUR': 'PVT',
@@ -261,12 +257,10 @@ def process_monthly_data(df, vto_df, details, objectif_pvt=960):
         'ETAT_IDENTIFICATION': 'ETAT_IDENTIFICATION'
     }
 
-    # Renommer les colonnes si elles existent
     for original_col, new_col in column_mapping.items():
         if original_col in df.columns:
             df = df.rename(columns={original_col: new_col})
 
-    # Nettoyage des données
     if 'LOGIN' in df.columns:
         df['LOGIN'] = df['LOGIN'].astype(str).str.lower().str.strip()
 
@@ -279,37 +273,46 @@ def process_monthly_data(df, vto_df, details, objectif_pvt=960):
     if 'PRENOM_VENDEUR' in df.columns:
         df['PRENOM_VENDEUR'] = df['PRENOM_VENDEUR'].astype(str).str.strip().str.upper()
 
-    # Filtrer les données
     logins_concernes = vto_df["LOGIN"].astype(str).str.lower().str.strip().tolist()
 
-    # Filtrer par LOGIN
     df_filtre_login = df[df['LOGIN'].isin(logins_concernes)] if 'LOGIN' in df.columns else df
 
-    # Filtrer par état d'identification si la colonne existe
     if 'ETAT_IDENTIFICATION' in df_filtre_login.columns:
         df_filtre = df_filtre_login[df_filtre_login['ETAT_IDENTIFICATION'].astype(str).isin(details)]
     else:
         df_filtre = df_filtre_login
 
-    # Appliquer le mapping DR
     if 'DR' in df_filtre.columns:
         df_filtre["DR"] = df_filtre["DR"].replace(DRV_MAPPING)
-        # Remplacer les valeurs non mappées par 'AUTRE'
         df_filtre["DR"] = df_filtre["DR"].apply(lambda x: x if x in DRV_MAPPING.values() else 'AUTRE')
 
-    # Créer les tableaux de synthèse
     # 1. Résumé par PVT
     if all(col in df_filtre.columns for col in ['DR', 'PVT']):
         df_pvt_summary = df_filtre.groupby(['DR', 'PVT'], as_index=False).size()
         df_pvt_summary.columns = ['DR', 'PVT', 'REALISATION']
         df_pvt_summary['OBJECTIF'] = objectif_pvt
-        # MODIFICATION: Arrondir le R/O à l'entier le plus proche
         df_pvt_summary['R/O'] = (df_pvt_summary['REALISATION'] / df_pvt_summary['OBJECTIF'] * 100).round(0).astype(int)
         df_pvt_summary = df_pvt_summary.sort_values(['DR', 'PVT'])
     else:
         df_pvt_summary = pd.DataFrame(columns=['DR', 'PVT', 'REALISATION', 'OBJECTIF', 'R/O'])
 
-    # 2. Détails par VTO
+    # 2. Résumé par DR
+    if 'DR' in df_filtre.columns:
+        df_dr_summary = df_filtre.groupby('DR', as_index=False).size()
+        df_dr_summary.columns = ['DR', 'REALISATION']
+
+        if not df_pvt_summary.empty:
+            pvt_count_per_dr = df_pvt_summary.groupby('DR')['PVT'].nunique()
+            df_dr_summary['OBJECTIF'] = df_dr_summary['DR'].map(pvt_count_per_dr) * objectif_pvt
+        else:
+            df_dr_summary['OBJECTIF'] = 0
+
+        df_dr_summary['R/O'] = (df_dr_summary['REALISATION'] / df_dr_summary['OBJECTIF'] * 100).round(0).astype(int)
+        df_dr_summary = df_dr_summary.sort_values('DR')
+    else:
+        df_dr_summary = pd.DataFrame(columns=['DR', 'REALISATION', 'OBJECTIF', 'R/O'])
+
+    # 3. Détails par VTO
     required_vto_cols = ['DR', 'PVT', 'PRENOM_VENDEUR', 'NOM_VENDEUR', 'LOGIN']
     if all(col in df_filtre.columns for col in required_vto_cols):
         df_reporting = df_filtre.groupby(['DR', 'PVT', 'PRENOM_VENDEUR', 'NOM_VENDEUR', 'LOGIN'], as_index=False).size()
@@ -318,25 +321,43 @@ def process_monthly_data(df, vto_df, details, objectif_pvt=960):
     else:
         df_reporting = pd.DataFrame(columns=['DR', 'PVT', 'PRENOM_VENDEUR', 'NOM_VENDEUR', 'LOGIN', 'REALISATION'])
 
-    return df_filtre, df_pvt_summary, df_reporting
+    return df_filtre, df_pvt_summary, df_dr_summary, df_reporting
 
-def generate_monthly_excel_report(df_pvt_summary, df_reporting, mois_nom, annee):
+def generate_monthly_excel_report(df_pvt_summary, df_dr_summary, df_reporting, mois_nom, annee):
     """Génère un fichier Excel avec mise en forme pour le reporting mensuel"""
     buffer_output = BytesIO()
 
-    # Créer les DataFrames avec totaux
-    total_realisation = int(df_pvt_summary['REALISATION'].sum())
-    total_objectif = int(df_pvt_summary['OBJECTIF'].sum())
-    total_ro = round((total_realisation / total_objectif * 100), 0) if total_objectif > 0 else 0
+    # Totaux pour PVT
+    total_realisation_pvt = int(df_pvt_summary['REALISATION'].sum())
+    total_objectif_pvt = int(df_pvt_summary['OBJECTIF'].sum())
+    total_ro_pvt = round((total_realisation_pvt / total_objectif_pvt * 100), 0) if total_objectif_pvt > 0 else 0
 
-    # Préparer le DataFrame pour l'export PVT - MODIFICATION: R/O en entier
+    # Totaux pour DR
+    total_realisation_dr = int(df_dr_summary['REALISATION'].sum())
+    total_objectif_dr = int(df_dr_summary['OBJECTIF'].sum())
+    total_ro_dr = round((total_realisation_dr / total_objectif_dr * 100), 0) if total_objectif_dr > 0 else 0
+
+    # Préparer le DataFrame pour l'export DR
+    df_dr_summary_export = df_dr_summary.copy().reset_index(drop=True)
+    new_row_dr = {
+        'DR': 'TOTAL',
+        'REALISATION': total_realisation_dr,
+        'OBJECTIF': total_objectif_dr,
+        'R/O': int(total_ro_dr)
+    }
+    df_dr_summary_export = pd.concat([
+        df_dr_summary_export,
+        pd.DataFrame([new_row_dr])
+    ], ignore_index=True)
+
+    # Préparer le DataFrame pour l'export PVT
     df_pvt_summary_export = df_pvt_summary.copy().reset_index(drop=True)
     new_row_pvt = {
         'DR': '',
         'PVT': 'TOTAL',
-        'REALISATION': total_realisation,
-        'OBJECTIF': total_objectif,
-        'R/O': int(total_ro)
+        'REALISATION': total_realisation_pvt,
+        'OBJECTIF': total_objectif_pvt,
+        'R/O': int(total_ro_pvt)
     }
     df_pvt_summary_export = pd.concat([
         df_pvt_summary_export,
@@ -359,7 +380,9 @@ def generate_monthly_excel_report(df_pvt_summary, df_reporting, mois_nom, annee)
         pd.DataFrame([new_row_vto])
     ], ignore_index=True)
 
+    # Écrire dans l'ordre demandé : Résumé DR, Résumé PVT, Détails VTO
     with pd.ExcelWriter(buffer_output, engine='openpyxl') as writer:
+        df_dr_summary_export.to_excel(writer, sheet_name='Résumé DR', index=False)
         df_pvt_summary_export.to_excel(writer, sheet_name='Résumé PVT', index=False)
         df_reporting_export.to_excel(writer, sheet_name='Détails VTO', index=False)
 
@@ -377,17 +400,9 @@ def generate_monthly_excel_report(df_pvt_summary, df_reporting, mois_nom, annee)
     rouge_fill = PatternFill(start_color="FFC7CE", end_color="FFC7CE", fill_type="solid")
     rouge_font = Font(color="9C0006")
 
-    # ============================================
-    # Formater la feuille "Résumé PVT"
-    # ============================================
-    ws_pvt = wb['Résumé PVT']
-
-    # Ajouter un titre
-    ws_pvt.insert_rows(1)
-    ws_pvt.merge_cells('A1:E1')
-    ws_pvt['A1'] = f'REPORTING MENSUEL - {mois_nom.upper()} {annee} | OBJECTIF PAR PVT: 960'
-    ws_pvt['A1'].font = Font(bold=True, size=14, color="FF7900")
-    ws_pvt['A1'].alignment = Alignment(horizontal='center', vertical='center')
+    # Jaune pour R/O entre 80 et 99%
+    jaune_fill = PatternFill(start_color="FFEB9C", end_color="FFEB9C", fill_type="solid")
+    jaune_font = Font(color="9C6500")
 
     header_fill = PatternFill(start_color="D9D9D9", end_color="D9D9D9", fill_type="solid")
     header_font = Font(bold=True, size=11)
@@ -398,23 +413,96 @@ def generate_monthly_excel_report(df_pvt_summary, df_reporting, mois_nom, annee)
         bottom=Side(style='thin')
     )
 
-    # Formater les en-têtes (maintenant en ligne 2)
-    for cell in ws_pvt[2]:
+    # ============================================
+    # Formater la feuille "Résumé DR"
+    # ============================================
+    ws_dr = wb['Résumé DR']
+
+    # Formater les en-têtes (ligne 1)
+    for cell in ws_dr[1]:
         cell.fill = header_fill
         cell.font = header_font
         cell.alignment = Alignment(horizontal='center', vertical='center')
         cell.border = thin_border
 
     # Mettre à jour les en-têtes
-    ws_pvt['C2'].value = 'REALISATION'
-    ws_pvt['E2'].value = 'R/O (%)'
+    ws_dr['B1'].value = 'REALISATION'
+    ws_dr['C1'].value = 'OBJECTIF'
+    ws_dr['D1'].value = 'R/O (%)'
+
+    # Formater les données
+    for row_idx in range(2, ws_dr.max_row + 1):
+        for col_idx in range(1, 5):
+            cell = ws_dr.cell(row_idx, col_idx)
+            cell.border = thin_border
+
+            # Appliquer le formatage spécial pour la colonne R/O (colonne D)
+            if col_idx == 4:  # Colonne R/O
+                ro_value = cell.value
+                if ro_value is not None:
+                    try:
+                        ro_numeric = float(ro_value)
+
+                        # Appliquer le symbole % directement dans la cellule
+                        cell.value = f"{int(ro_numeric)}%"
+
+                        # Appliquer la couleur selon la valeur
+                        if ro_numeric >= 100:
+                            cell.fill = vert_fill
+                            cell.font = vert_font
+                        elif 80 <= ro_numeric <= 99:
+                            cell.fill = jaune_fill
+                            cell.font = jaune_font
+                        elif ro_numeric < 80:
+                            cell.fill = rouge_fill
+                            cell.font = rouge_font
+                    except (ValueError, AttributeError):
+                        pass
+
+            if row_idx == ws_dr.max_row:  # Ligne TOTAL
+                cell.font = Font(bold=True, size=11)
+                cell.fill = PatternFill(start_color="FFE5CC", end_color="FFE5CC", fill_type="solid")
+                if col_idx in [1, 2, 3, 4]:
+                    cell.alignment = Alignment(horizontal='center', vertical='center')
+            else:
+                if col_idx == 1:  # Colonne DR
+                    cell.alignment = Alignment(horizontal='left', vertical='center')
+                    cell.font = Font(bold=True, size=10)
+                elif col_idx in [2, 3]:  # Colonnes REALISATION et OBJECTIF
+                    cell.alignment = Alignment(horizontal='center', vertical='center')
+                    cell.font = Font(size=10)
+                elif col_idx == 4:  # Colonne R/O
+                    cell.alignment = Alignment(horizontal='center', vertical='center')
+                    cell.font = Font(bold=True, size=10)
+
+    ws_dr.column_dimensions['A'].width = 15
+    ws_dr.column_dimensions['B'].width = 12
+    ws_dr.column_dimensions['C'].width = 12
+    ws_dr.column_dimensions['D'].width = 10
+    ws_dr.freeze_panes = 'A2'
+
+    # ============================================
+    # Formater la feuille "Résumé PVT"
+    # ============================================
+    ws_pvt = wb['Résumé PVT']
+
+    # Formater les en-têtes (ligne 1)
+    for cell in ws_pvt[1]:
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal='center', vertical='center')
+        cell.border = thin_border
+
+    # Mettre à jour les en-têtes
+    ws_pvt['C1'].value = 'REALISATION'
+    ws_pvt['E1'].value = 'R/O (%)'
 
     # Fusionner les cellules pour les DR
     drv_ranges_pvt = []
     current_drv = None
-    drv_start = 3  # Commence à la ligne 3 maintenant
+    drv_start = 2
 
-    for row_idx in range(3, ws_pvt.max_row):
+    for row_idx in range(2, ws_pvt.max_row):
         drv_value = ws_pvt.cell(row_idx, 1).value
         if drv_value and drv_value != current_drv:
             if current_drv is not None and row_idx > drv_start:
@@ -435,8 +523,8 @@ def generate_monthly_excel_report(df_pvt_summary, df_reporting, mois_nom, annee)
     ws_pvt.merge_cells(f'A{ws_pvt.max_row}:B{ws_pvt.max_row}')
     ws_pvt.cell(ws_pvt.max_row, 1).value = 'TOTAL'
 
-    # MODIFICATION: Appliquer la coloration conditionnelle simplifiée
-    for row_idx in range(3, ws_pvt.max_row + 1):
+    # Appliquer la coloration conditionnelle
+    for row_idx in range(2, ws_pvt.max_row + 1):
         for col_idx in range(1, 6):
             cell = ws_pvt.cell(row_idx, col_idx)
             cell.border = thin_border
@@ -446,22 +534,23 @@ def generate_monthly_excel_report(df_pvt_summary, df_reporting, mois_nom, annee)
                 ro_value = cell.value
                 if ro_value is not None:
                     try:
-                        # MODIFICATION: Règles de coloration simplifiées
                         ro_numeric = float(ro_value)
 
                         # Appliquer la couleur selon la valeur
                         if ro_numeric >= 100:
                             cell.fill = vert_fill
                             cell.font = vert_font
-                            cell.value = f"{int(ro_numeric)}%"  # Format en pourcentage
+                            cell.value = f"{int(ro_numeric)}%"
+                        elif 80 <= ro_numeric <= 99:
+                            cell.fill = jaune_fill
+                            cell.font = jaune_font
+                            cell.value = f"{int(ro_numeric)}%"
                         elif ro_numeric < 80:
                             cell.fill = rouge_fill
                             cell.font = rouge_font
-                            cell.value = f"{int(ro_numeric)}%"  # Format en pourcentage
-                        else:
-                            cell.value = f"{int(ro_numeric)}%"  # Format en pourcentage
+                            cell.value = f"{int(ro_numeric)}%"
                     except (ValueError, AttributeError):
-                        pass  # Si conversion échoue, ne pas appliquer de couleur
+                        pass
 
             if row_idx == ws_pvt.max_row:  # Ligne TOTAL
                 cell.font = Font(bold=True, size=11)
@@ -485,36 +574,29 @@ def generate_monthly_excel_report(df_pvt_summary, df_reporting, mois_nom, annee)
     ws_pvt.column_dimensions['C'].width = 12
     ws_pvt.column_dimensions['D'].width = 12
     ws_pvt.column_dimensions['E'].width = 10
-    ws_pvt.freeze_panes = 'A3'
+    ws_pvt.freeze_panes = 'A2'
 
     # ============================================
     # Formater la feuille "Détails VTO"
     # ============================================
     ws = wb['Détails VTO']
 
-    # Ajouter un titre
-    ws.insert_rows(1)
-    ws.merge_cells('A1:G1')
-    ws['A1'] = f'DÉTAIL PAR VENDEUR - {mois_nom.upper()} {annee}'
-    ws['A1'].font = Font(bold=True, size=14, color="FF7900")
-    ws['A1'].alignment = Alignment(horizontal='center', vertical='center')
-
-    # Formater les en-têtes (maintenant en ligne 2)
-    for cell in ws[2]:
+    # Formater les en-têtes (ligne 1)
+    for cell in ws[1]:
         cell.fill = header_fill
         cell.font = header_font
         cell.alignment = Alignment(horizontal='center', vertical='center')
         cell.border = thin_border
 
     # Mettre à jour les en-têtes
-    ws['F2'].value = 'REALISATION'
+    ws['F1'].value = 'REALISATION'
 
     # Fusionner les cellules pour les DR
     drv_ranges = []
     current_drv = None
-    drv_start = 3
+    drv_start = 2
 
-    for row_idx in range(3, ws.max_row):
+    for row_idx in range(2, ws.max_row):
         drv_value = ws.cell(row_idx, 1).value
         if drv_value != current_drv:
             if current_drv is not None and row_idx > drv_start:
@@ -528,9 +610,9 @@ def generate_monthly_excel_report(df_pvt_summary, df_reporting, mois_nom, annee)
     # Fusionner les cellules pour les PVT
     pvt_ranges = []
     current_pvt = None
-    pvt_start = 3
+    pvt_start = 2
 
-    for row_idx in range(3, ws.max_row):
+    for row_idx in range(2, ws.max_row):
         pvt_value = ws.cell(row_idx, 2).value
         if pvt_value != current_pvt:
             if current_pvt is not None and row_idx > pvt_start:
@@ -560,7 +642,7 @@ def generate_monthly_excel_report(df_pvt_summary, df_reporting, mois_nom, annee)
     ws.cell(ws.max_row, 1).value = 'TOTAL'
 
     # Formater toutes les cellules
-    for row_idx in range(3, ws.max_row + 1):
+    for row_idx in range(2, ws.max_row + 1):
         for col_idx in range(1, 7):
             cell = ws.cell(row_idx, col_idx)
             cell.border = thin_border
@@ -584,7 +666,7 @@ def generate_monthly_excel_report(df_pvt_summary, df_reporting, mois_nom, annee)
     ws.column_dimensions['D'].width = 18
     ws.column_dimensions['E'].width = 20
     ws.column_dimensions['F'].width = 12
-    ws.freeze_panes = 'A3'
+    ws.freeze_panes = 'A2'
 
     final_buffer = BytesIO()
     wb.save(final_buffer)
@@ -592,10 +674,9 @@ def generate_monthly_excel_report(df_pvt_summary, df_reporting, mois_nom, annee)
 
     return final_buffer
 
-def display_monthly_metrics(df_filtre, df_reporting, df_pvt_summary, mois_nom, annee):
+def display_monthly_metrics(df_filtre, df_reporting, df_pvt_summary, df_dr_summary, mois_nom, annee):
     """Affiche les métriques et graphiques pour le reporting mensuel"""
 
-    # Section des métriques principales (SIMPLIFIÉE)
     st.markdown('<div class="section-title">📊 MÉTRIQUES PRINCIPALES</div>', unsafe_allow_html=True)
 
     col1, col2, col3, col4 = st.columns(4)
@@ -638,35 +719,67 @@ def display_monthly_metrics(df_filtre, df_reporting, df_pvt_summary, mois_nom, a
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # 📊 TABLEAU 1 : Résumé par PVT (SIMPLIFIÉ)
-    st.markdown(f'<div class="section-title">📋 RÉSUMÉ PAR POINT DE VENTE - {mois_nom.upper()} {annee}</div>', unsafe_allow_html=True)
+    # 📊 TABLEAU 1 : Résumé par DR
+    st.markdown(f'<div class="section-title">📋 RÉSUMÉ PAR DIRECTION RÉGIONALE - {mois_nom.upper()} {annee}</div>', unsafe_allow_html=True)
 
-    if not df_pvt_summary.empty:
-        # Créer une copie pour l'affichage avec R/O formaté en pourcentage
-        df_pvt_summary_display = df_pvt_summary.copy()
-        df_pvt_summary_display['R/O'] = df_pvt_summary_display['R/O'].astype(str) + '%'
+    if not df_dr_summary.empty:
+        df_dr_summary_display = df_dr_summary.copy()
+        df_dr_summary_display['R/O'] = df_dr_summary_display['R/O'].astype(str) + '%'
 
-        # Ajouter une ligne de total
-        total_realisation = df_pvt_summary['REALISATION'].sum()
-        total_objectif = df_pvt_summary['OBJECTIF'].sum()
+        total_realisation = df_dr_summary['REALISATION'].sum()
+        total_objectif = df_dr_summary['OBJECTIF'].sum()
         total_ro = round((total_realisation / total_objectif * 100), 0) if total_objectif > 0 else 0
 
-        df_pvt_summary_display.loc[len(df_pvt_summary_display)] = ['', 'TOTAL', total_realisation, total_objectif, f'{int(total_ro)}%']
+        df_dr_summary_display.loc[len(df_dr_summary_display)] = ['TOTAL', total_realisation, total_objectif, f'{int(total_ro)}%']
 
-        # Fonction de coloration simplifiée
-        def color_ro(val):
+        def color_ro_dr(val):
             if isinstance(val, str) and val.endswith('%'):
                 try:
                     ro_numeric = float(val.strip('%'))
                     if ro_numeric >= 100:
                         return 'background-color: #C6EFCE; color: #006100; font-weight: bold;'
+                    elif 80 <= ro_numeric <= 99:
+                        return 'background-color: #FFEB9C; color: #9C6500; font-weight: bold;'
                     elif ro_numeric < 80:
                         return 'background-color: #FFC7CE; color: #9C0006; font-weight: bold;'
                 except:
                     pass
             return ''
 
-        # Appliquer le style uniquement à la colonne R/O
+        styled_df_dr = df_dr_summary_display.style.applymap(color_ro_dr, subset=['R/O'])
+        st.dataframe(styled_df_dr, use_container_width=True)
+    else:
+        st.warning("Aucune donnée disponible pour le résumé par DR")
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # 📊 TABLEAU 2 : Résumé par PVT
+    st.markdown(f'<div class="section-title">📋 RÉSUMÉ PAR POINT DE VENTE - {mois_nom.upper()} {annee}</div>', unsafe_allow_html=True)
+
+    if not df_pvt_summary.empty:
+        df_pvt_summary_display = df_pvt_summary.copy()
+        df_pvt_summary_display['R/O'] = df_pvt_summary_display['R/O'].astype(str) + '%'
+
+        total_realisation = df_pvt_summary['REALISATION'].sum()
+        total_objectif = df_pvt_summary['OBJECTIF'].sum()
+        total_ro = round((total_realisation / total_objectif * 100), 0) if total_objectif > 0 else 0
+
+        df_pvt_summary_display.loc[len(df_pvt_summary_display)] = ['', 'TOTAL', total_realisation, total_objectif, f'{int(total_ro)}%']
+
+        def color_ro(val):
+            if isinstance(val, str) and val.endswith('%'):
+                try:
+                    ro_numeric = float(val.strip('%'))
+                    if ro_numeric >= 100:
+                        return 'background-color: #C6EFCE; color: #006100; font-weight: bold;'
+                    elif 80 <= ro_numeric <= 99:
+                        return 'background-color: #FFEB9C; color: #9C6500; font-weight: bold;'
+                    elif ro_numeric < 80:
+                        return 'background-color: #FFC7CE; color: #9C0006; font-weight: bold;'
+                except:
+                    pass
+            return ''
+
         styled_df = df_pvt_summary_display.style.applymap(color_ro, subset=['R/O'])
         st.dataframe(styled_df, use_container_width=True)
     else:
@@ -674,11 +787,10 @@ def display_monthly_metrics(df_filtre, df_reporting, df_pvt_summary, mois_nom, a
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # 📊 TABLEAU 2 : Détails par VTO (SIMPLIFIÉ)
+    # 📊 TABLEAU 3 : Détails par VTO
     st.markdown(f'<div class="section-title">👥 DÉTAIL PAR VENDEUR - {mois_nom.upper()} {annee}</div>', unsafe_allow_html=True)
 
     if not df_reporting.empty:
-        # Ajouter une ligne de total
         total_realisation_vto = df_reporting['REALISATION'].sum()
         df_reporting_display = df_reporting.copy()
         df_reporting_display.loc[len(df_reporting_display)] = ['', '', '', '', 'TOTAL', total_realisation_vto]
@@ -689,10 +801,9 @@ def display_monthly_metrics(df_filtre, df_reporting, df_pvt_summary, mois_nom, a
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # 📊 GRAPHIQUES (SIMPLIFIÉS)
+    # 📊 GRAPHIQUES
     st.markdown('<div class="section-title">📈 VISUALISATION DES PERFORMANCES</div>', unsafe_allow_html=True)
 
-    # Première ligne : Distribution par DR
     if 'DR' in df_filtre.columns and not df_filtre.empty:
         df_drv = df_filtre.groupby('DR').size().reset_index(name='REALISATION')
         df_drv = df_drv.sort_values('REALISATION', ascending=False)
@@ -703,7 +814,6 @@ def display_monthly_metrics(df_filtre, df_reporting, df_pvt_summary, mois_nom, a
         col_dr1, col_dr2 = st.columns(2)
 
         with col_dr1:
-            # Diagramme circulaire
             fig_pie_dr = px.pie(
                 df_drv,
                 values='REALISATION',
@@ -748,7 +858,6 @@ def display_monthly_metrics(df_filtre, df_reporting, df_pvt_summary, mois_nom, a
             st.plotly_chart(fig_pie_dr, use_container_width=True)
 
         with col_dr2:
-            # Diagramme à barres VERTICALES
             fig_bar_dr = go.Figure()
 
             df_drv_bar = df_drv.sort_values('REALISATION', ascending=False)
@@ -802,7 +911,6 @@ def display_monthly_metrics(df_filtre, df_reporting, df_pvt_summary, mois_nom, a
 
             st.plotly_chart(fig_bar_dr, use_container_width=True)
 
-    # Deuxième ligne : Top PVT et Top VTO
     col_pvt, col_vto = st.columns(2)
 
     with col_pvt:
@@ -918,12 +1026,11 @@ def display_monthly_metrics(df_filtre, df_reporting, df_pvt_summary, mois_nom, a
             st.plotly_chart(fig_top10, use_container_width=True)
 
 # ====================
-# INTERFACE PRINCIPALE SIMPLIFIÉE
+# INTERFACE PRINCIPALE
 # ====================
 def main():
     st.markdown('<div class="section-title">📅 SÉLECTION DE LA PÉRIODE</div>', unsafe_allow_html=True)
 
-    # Sélection du mois et de l'année
     current_date = datetime.now()
     current_year = current_date.year
     current_month = current_date.month
@@ -948,7 +1055,6 @@ def main():
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # Upload du fichier
     st.markdown('<div class="section-title">📁 IMPORTATION DES DONNÉES</div>', unsafe_allow_html=True)
 
     uploaded_file = st.file_uploader(
@@ -961,7 +1067,6 @@ def main():
         st.markdown("<br>", unsafe_allow_html=True)
 
         try:
-            # Lecture du fichier
             if uploaded_file.name.endswith('.csv'):
                 df = pd.read_csv(uploaded_file, encoding='utf-8', sep=';')
             elif uploaded_file.name.endswith('.xls'):
@@ -980,30 +1085,25 @@ def main():
 
             st.success(f"✅ Fichier chargé avec succès ! {len(df)} lignes trouvées")
 
-            # Charger les données VTO
             vto_df = load_vto()
             details = ["En Cours-Identification", "Identifie", "Identifie Photo"]
 
-            # Objectif mensuel par PVT - 960
             objectif_mensuel = 960
 
-            # Traiter les données
-            df_filtre, df_pvt_summary, df_reporting = process_monthly_data(
+            df_filtre, df_pvt_summary, df_dr_summary, df_reporting = process_monthly_data(
                 df, vto_df, details, objectif_mensuel
             )
 
             if not df_filtre.empty:
                 st.success(f"✅ Données traitées avec succès ! {len(df_filtre)} ventes mensuelles analysées")
 
-                # Afficher les métriques et graphiques
-                display_monthly_metrics(df_filtre, df_reporting, df_pvt_summary, mois_nom, selected_year)
+                display_monthly_metrics(df_filtre, df_reporting, df_pvt_summary, df_dr_summary, mois_nom, selected_year)
 
-                # Section de téléchargement SIMPLIFIÉE
                 st.markdown('<div class="section-title">📥 TÉLÉCHARGEMENT DU RAPPORT</div>', unsafe_allow_html=True)
 
                 try:
                     excel_buffer = generate_monthly_excel_report(
-                        df_pvt_summary, df_reporting, mois_nom, selected_year
+                        df_pvt_summary, df_dr_summary, df_reporting, mois_nom, selected_year
                     )
 
                     file_name = f"Reporting_Mensuel_{mois_nom}_{selected_year}.xlsx"
