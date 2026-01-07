@@ -9,7 +9,6 @@ except ImportError:
     subprocess.check_call([sys.executable, "-m", "pip", "install", "kaleido", "--break-system-packages"])
     import kaleido
 
-# CORRECTION ICI : __file__ au lieu de _file_
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import streamlit as st
@@ -161,7 +160,7 @@ st.markdown("""
 # Charger le logo
 # ====================
 logo = None
-parent_dir = Path(__file__).parent.parent  # CORRECTION ICI AUSSI
+parent_dir = Path(__file__).parent.parent
 logo_paths = [
     parent_dir / "assets" / "logo sonatel.png",
     Path("assets") / "logo sonatel.png",
@@ -328,7 +327,8 @@ if file_sim and file_om:
     df_test['REALISATION_SIM'] = df_test['REALISATION_SIM'].fillna(0)
     df_test['REALISATION_OM'] = df_test['REALISATION_OM'].fillna(0)
 
-    # === CRÉATION DES TOTAUX PAR PVT ET DRV ===
+    # === CRÉATION DE LA DEUXIÈME FEUILLE (Résumé PVT) ===
+    # Création des totaux pour df_test (pour la deuxième feuille)
     df_test_with_totals = pd.DataFrame(columns=df_test.columns)
 
     for drv, group_drv in df_test.groupby('DRV'):
@@ -339,7 +339,7 @@ if file_sim and file_om:
             total_sim = group_pvt['REALISATION_SIM'].sum()
             total_obj = group_pvt['OBJECTIF SIM'].sum()
             si_total_atteint = group_pvt['SI 100% ATTEINT SIM'].sum()
-            tr_mean = group_pvt["TAUX D'ATTEINTE SIM"].apply(lambda x: float(x.strip('%'))).mean()
+            tr_mean = group_pvt["TAUX D'ATTEINTE SIM"].apply(lambda x: float(str(x).replace('%', '')) if pd.notnull(x) else 0).mean()
             total_om = group_pvt['REALISATION_OM'].sum()
             total_obj_om = group_pvt['OBJECTIF OM'].sum()
             si_total_atteint_om = group_pvt['SI 100% ATTEINT OM'].sum()
@@ -349,6 +349,7 @@ if file_sim and file_om:
             total_pvt = total_paiement_sim + chauffeur + total_paiement_om
 
             row_total = {
+                'DRV': drv,
                 'PVT': "TOTAL PVT",
                 'REALISATION_SIM': total_sim,
                 'OBJECTIF SIM': total_obj,
@@ -380,12 +381,7 @@ if file_sim and file_om:
         }
         df_test_with_totals = pd.concat([df_test_with_totals, pd.DataFrame([row_total_drv])], ignore_index=True)
 
-    df_test_with_totals = df_test_with_totals.rename(columns={
-        'PRENOM_VENDEUR': 'PRENOM_VENDEUR',
-        'NOM_VENDEUR': 'NOM_VENDEUR'
-    })
-
-    # === CALCUL MONTANTS ===
+    # === CALCUL MONTANTS POUR RÉSUMÉ PVT ===
     df_test["MONTANT"] = df_test["PAIEMENT_SIM"] + df_test["PAIEMENT_OM"]
 
     df_par_pvt = df_test.groupby(["DRV", "PVT"]).agg({'MONTANT': 'sum'}).reset_index()
@@ -403,6 +399,129 @@ if file_sim and file_om:
 
     df_par_pvt_display = df_par_pvt.copy()
     df_par_pvt_display.loc[len(df_par_pvt_display)] = ['TOTAL', '', '', montant_sum, gain_sum, total_sum]
+
+    # === RENOMMER LES COLONNES POUR LA PREMIÈRE FEUILLE (avec noms uniques) ===
+    df_export = df_test.copy()
+    df_export = df_export.rename(columns={
+        'DRV': 'DRV',
+        'PVT': 'PVT',
+        'PRENOM_VENDEUR': 'PRENOM_VTO',
+        'NOM_VENDEUR': 'NOM_VTO',
+        'LOGIN': 'LOGIN',
+        'KABBU': 'Numéro Kabbu',
+        'REALISATION_SIM': 'R_SIM',
+        'OBJECTIF SIM': 'O_SIM',
+        "TAUX D'ATTEINTE SIM": "%_ATTEINTE_SIM",
+        'SI 100% ATTEINT SIM': 'GAIN_MAX_SIM',
+        'PAIEMENT_SIM': 'GAIN_SIM',
+        'REALISATION_OM': 'R_OM',
+        'OBJECTIF OM': 'O_OM',
+        "TAUX D'ATTEINTE OM": "R/O_OM",
+        'SI 100% ATTEINT OM': 'GAIN_MAX_OM',
+        'PAIEMENT_OM': 'GAIN_OM',
+    })
+
+    # === CRÉATION DES TOTAUX POUR LA PREMIÈRE FEUILLE ===
+    df_export_with_totals = pd.DataFrame()
+
+    for drv, group_drv in df_export.groupby('DRV'):
+        for pvt, group_pvt in group_drv.groupby('PVT'):
+            # Ajouter les lignes du PVT
+            df_export_with_totals = pd.concat([df_export_with_totals, group_pvt], ignore_index=True)
+
+            # Calculer TOTAL PVT
+            total_r_sim = group_pvt['R_SIM'].sum()
+            total_o_sim = group_pvt['O_SIM'].sum()
+            total_gain_sim = group_pvt['GAIN_SIM'].sum()
+            total_r_om = group_pvt['R_OM'].sum()
+            total_o_om = group_pvt['O_OM'].sum()
+            total_gain_om = group_pvt['GAIN_OM'].sum()
+
+            # Calculer les moyennes pour les pourcentages
+            taux_atteinte_sim_values = group_pvt['%_ATTEINTE_SIM'].apply(
+                lambda x: float(str(x).replace('%', '').strip())
+                if pd.notnull(x) and str(x).replace('%', '').strip() != '' else 0
+            )
+            taux_atteinte_sim_mean = taux_atteinte_sim_values.mean()
+
+            ro_om_values = group_pvt['R/O_OM'].apply(
+                lambda x: float(str(x).replace('%', '').strip())
+                if pd.notnull(x) and str(x).replace('%', '').strip() != '' else 0
+            )
+            ro_mean = ro_om_values.mean()
+
+            chauffeur = 100000
+            total_pvt = total_gain_sim + total_gain_om + chauffeur
+
+            # Créer la ligne TOTAL PVT avec toutes les colonnes nécessaires
+            row_total_pvt = {
+                'DRV': drv,
+                'PVT': 'TOTAL PVT',
+                'PRENOM_VTO': '',
+                'NOM_VTO': '',
+                'LOGIN': '',
+                'Numéro Kabbu': '',
+                'R_SIM': total_r_sim,
+                'O_SIM': total_o_sim,
+                '%_ATTEINTE_SIM': f'{taux_atteinte_sim_mean:.1f}%',
+                'GAIN_MAX_SIM': '',
+                'GAIN_SIM': total_gain_sim,
+                'R_OM': total_r_om,
+                'O_OM': total_o_om,
+                'R/O_OM': f'{ro_mean:.1f}%',
+                'GAIN_MAX_OM': '',
+                'GAIN_OM': total_gain_om,
+                'Gain Chauffeur': chauffeur,
+                'Gain SIM + OM + Chauffeur': total_pvt
+            }
+
+            # S'assurer que toutes les colonnes de df_export sont présentes
+            for col in df_export.columns:
+                if col not in row_total_pvt:
+                    row_total_pvt[col] = ''
+
+            # Créer DataFrame avec la même structure
+            df_export_with_totals = pd.concat([
+                df_export_with_totals,
+                pd.DataFrame([row_total_pvt])
+            ], ignore_index=True)
+
+        # Calculer TOTAL DRV
+        total_gain_sim_drv = group_drv['GAIN_SIM'].sum()
+        total_gain_om_drv = group_drv['GAIN_OM'].sum()
+        chauffeur_drv = 200000
+        total_drv = total_gain_sim_drv + total_gain_om_drv + chauffeur_drv
+
+        row_total_drv = {
+            'DRV': drv,
+            'PVT': 'TOTAL DRV',
+            'PRENOM_VTO': '',
+            'NOM_VTO': '',
+            'LOGIN': '',
+            'Numéro Kabbu': '',
+            'R_SIM': '',
+            'O_SIM': '',
+            '%_ATTEINTE_SIM': '',
+            'GAIN_MAX_SIM': '',
+            'GAIN_SIM': total_gain_sim_drv,
+            'R_OM': '',
+            'O_OM': '',
+            'R/O_OM': '',
+            'GAIN_MAX_OM': '',
+            'GAIN_OM': total_gain_om_drv,
+            'Gain Chauffeur': chauffeur_drv,
+            'Gain SIM + OM + Chauffeur': total_drv
+        }
+
+        # S'assurer que toutes les colonnes de df_export sont présentes
+        for col in df_export.columns:
+            if col not in row_total_drv:
+                row_total_drv[col] = ''
+
+        df_export_with_totals = pd.concat([
+            df_export_with_totals,
+            pd.DataFrame([row_total_drv])
+        ], ignore_index=True)
 
     # === AFFICHAGE DES MÉTRIQUES ===
     st.success("✅ Fichiers traités avec succès !")
@@ -442,7 +561,6 @@ if file_sim and file_om:
     # === GRAPHIQUES ===
     st.markdown('<div class="section-title">📊 Analyse des Paiements</div>', unsafe_allow_html=True)
 
-    # Graphique : Répartition SIM vs OM
     col1, col2 = st.columns(2)
 
     with col1:
@@ -459,20 +577,6 @@ if file_sim and file_om:
             height=400
         )
         st.plotly_chart(fig_pie, use_container_width=True)
-
-        try:
-            buffer_pie = BytesIO()
-            fig_pie.write_image(buffer_pie, format='png', width=800, height=600, scale=2)
-            buffer_pie.seek(0)
-            st.download_button(
-                label="📥 Exporter Répartition SIM/OM",
-                data=buffer_pie,
-                file_name="repartition_sim_om.png",
-                mime="image/png",
-                key="export_pie"
-            )
-        except:
-            st.warning("⚠ Kaleido requis pour l'export d'images")
 
     with col2:
         df_drv_paiement = df_test.groupby('DRV').agg({
@@ -504,20 +608,6 @@ if file_sim and file_om:
             height=400
         )
         st.plotly_chart(fig_bar, use_container_width=True)
-
-        try:
-            buffer_bar = BytesIO()
-            fig_bar.write_image(buffer_bar, format='png', width=800, height=600, scale=2)
-            buffer_bar.seek(0)
-            st.download_button(
-                label="📥 Exporter Paiements DRV",
-                data=buffer_bar,
-                file_name="paiements_drv.png",
-                mime="image/png",
-                key="export_bar"
-            )
-        except:
-            pass
 
     st.markdown("<br>", unsafe_allow_html=True)
 
@@ -555,19 +645,6 @@ if file_sim and file_om:
     fig_top10.update_xaxes(tickangle=-45)
     st.plotly_chart(fig_top10, use_container_width=True)
 
-    try:
-        buffer_top10 = BytesIO()
-        fig_top10.write_image(buffer_top10, format='png', width=1200, height=600, scale=2)
-        buffer_top10.seek(0)
-        st.download_button(
-            label="📥 Exporter Top 10 VTO",
-            data=buffer_top10,
-            file_name="top10_vto_paiement.png",
-            mime="image/png"
-        )
-    except:
-        pass
-
     st.markdown("<br>", unsafe_allow_html=True)
 
     # === TABLEAUX ===
@@ -575,8 +652,8 @@ if file_sim and file_om:
     st.dataframe(df_par_pvt_display, use_container_width=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown('<div class="section-title">📋 Détails Complets</div>', unsafe_allow_html=True)
-    st.dataframe(df_test_with_totals, use_container_width=True)
+    st.markdown('<div class="section-title">📋 Détails Complets (Première Feuille)</div>', unsafe_allow_html=True)
+    st.dataframe(df_export_with_totals, use_container_width=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
 
@@ -587,13 +664,16 @@ if file_sim and file_om:
         buffer_output = BytesIO()
 
         with pd.ExcelWriter(buffer_output, engine='openpyxl') as writer:
-            df_test_with_totals.to_excel(writer, sheet_name='Détails Paiement', index=False)
+            df_export_with_totals.to_excel(writer, sheet_name='Détails Paiement', index=False)
             df_par_pvt_display.to_excel(writer, sheet_name='Résumé PVT', index=False)
 
         buffer_output.seek(0)
         wb = load_workbook(buffer_output)
 
-        # Style commun
+        # ===== FEUILLE 1: Détails Paiement =====
+        ws1 = wb['Détails Paiement']
+
+        # Style des en-têtes
         header_fill = PatternFill(start_color="D9D9D9", end_color="D9D9D9", fill_type="solid")
         header_font = Font(bold=True, size=11)
         thin_border = Border(
@@ -603,22 +683,39 @@ if file_sim and file_om:
             bottom=Side(style='thin')
         )
 
-        # Formater "Détails Paiement"
-        ws1 = wb['Détails Paiement']
+        # Formater les en-têtes
         for cell in ws1[1]:
             cell.fill = header_fill
             cell.font = header_font
             cell.alignment = Alignment(horizontal='center', vertical='center')
             cell.border = thin_border
 
-        # Fusionner DRV et PVT pour Détails Paiement
+        # Fusionner les colonnes SIM et OM dans les en-têtes
+        ws1.insert_rows(1)
+        ws1.merge_cells('G1:K1')
+        ws1['G1'] = 'SIM'
+        ws1['G1'].fill = PatternFill(start_color="FFE5CC", end_color="FFE5CC", fill_type="solid")
+        ws1['G1'].font = Font(bold=True, size=12)
+        ws1['G1'].alignment = Alignment(horizontal='center', vertical='center')
+        ws1['G1'].border = thin_border
+
+        ws1.merge_cells('L1:P1')
+        ws1['L1'] = 'OM'
+        ws1['L1'].fill = PatternFill(start_color="C6EFCE", end_color="C6EFCE", fill_type="solid")
+        ws1['L1'].font = Font(bold=True, size=12)
+        ws1['L1'].alignment = Alignment(horizontal='center', vertical='center')
+        ws1['L1'].border = thin_border
+
+        # Fusionner DRV
         drv_ranges = []
         current_drv = None
-        drv_start = 2
+        drv_start = 3
 
-        for row_idx in range(2, ws1.max_row + 1):
+        for row_idx in range(3, ws1.max_row + 1):
             drv_value = ws1.cell(row_idx, 1).value
-            if drv_value and drv_value != current_drv:
+            pvt_value = ws1.cell(row_idx, 2).value
+
+            if drv_value and drv_value != current_drv and pvt_value not in ['TOTAL PVT', 'TOTAL DRV']:
                 if current_drv is not None and row_idx > drv_start:
                     drv_ranges.append((drv_start, row_idx - 1, current_drv))
                 current_drv = drv_value
@@ -633,20 +730,21 @@ if file_sim and file_om:
                 ws1.cell(start_row, 1).alignment = Alignment(horizontal='left', vertical='center')
                 ws1.cell(start_row, 1).font = Font(bold=True, size=10)
 
-        # Appliquer les styles aux cellules
-        for row_idx in range(2, ws1.max_row + 1):
+        # Appliquer les styles
+        for row_idx in range(3, ws1.max_row + 1):
             for col_idx in range(1, ws1.max_column + 1):
                 cell = ws1.cell(row_idx, col_idx)
                 cell.border = thin_border
 
-                # Lignes TOTAL PVT en vert clair et TOTAL en orange clair
-                if cell.value == 'TOTAL PVT':
+                pvt_value = ws1.cell(row_idx, 2).value
+
+                if pvt_value == 'TOTAL PVT':
                     for col in range(1, ws1.max_column + 1):
                         total_cell = ws1.cell(row_idx, col)
                         total_cell.font = Font(bold=True, size=11)
                         total_cell.fill = PatternFill(start_color="C6EFCE", end_color="C6EFCE", fill_type="solid")
                         total_cell.alignment = Alignment(horizontal='center', vertical='center')
-                elif cell.value == 'TOTAL':
+                elif pvt_value == 'TOTAL DRV':
                     for col in range(1, ws1.max_column + 1):
                         total_cell = ws1.cell(row_idx, col)
                         total_cell.font = Font(bold=True, size=11)
@@ -657,22 +755,29 @@ if file_sim and file_om:
                     cell.font = Font(size=10)
 
         # Largeurs des colonnes
-        ws1.column_dimensions['A'].width = 12
-        ws1.column_dimensions['B'].width = 45
-        ws1.column_dimensions['C'].width = 18
-        ws1.column_dimensions['D'].width = 18
-        ws1.column_dimensions['E'].width = 20
-        ws1.freeze_panes = 'A2'
+        column_widths = {
+            'A': 12, 'B': 50, 'C': 18, 'D': 18, 'E': 20, 'F': 15,
+            'G': 8, 'H': 8, 'I': 12, 'J': 12, 'K': 12,
+            'L': 8, 'M': 8, 'N': 12, 'O': 12, 'P': 12,
+            'Q': 15, 'R': 25
+        }
 
-        # Formater "Résumé PVT"
+        for col, width in column_widths.items():
+            ws1.column_dimensions[col].width = width
+
+        ws1.freeze_panes = 'A3'
+
+        # ===== FEUILLE 2: Résumé PVT =====
         ws2 = wb['Résumé PVT']
+
+        # Formater les en-têtes
         for cell in ws2[1]:
             cell.fill = header_fill
             cell.font = header_font
             cell.alignment = Alignment(horizontal='center', vertical='center')
             cell.border = thin_border
 
-        # Fusionner DRV pour Résumé PVT
+        # Fusionner DRV
         drv_ranges_pvt = []
         current_drv = None
         drv_start = 2
