@@ -406,7 +406,7 @@ if file_sim and file_om:
         dr_start_row = None
         pvt_start_row = None
 
-        # ✅ Première passe : identifier les plages (CORRIGÉ pour inclure le dernier PVT)
+        # ✅ Première passe : identifier les plages - SANS inclure TOTAL PVT dans la fusion
         for row_idx in range(3, ws1.max_row + 1):
             pvt_val = ws1.cell(row_idx, 2).value
             dr_val = ws1.cell(row_idx, 1).value
@@ -429,26 +429,41 @@ if file_sim and file_om:
                     current_dr = None
                     dr_start_row = None
 
-            # Gestion des PVT
+            # ✅ Gestion des PVT - INCLURE TOTAL PVT dans la plage de fusion
             if pvt_val and not str(dr_val).startswith('TOTAL') and dr_val != 'TOTAL GÉNÉRAL':
-                if pvt_val != 'TOTAL PVT' and current_pvt != pvt_val:
-                    if current_pvt and pvt_start_row:
-                        pvt_ranges[current_pvt] = (pvt_start_row, row_idx - 1)
-                    current_pvt = pvt_val
-                    pvt_start_row = row_idx
-            elif pvt_val == 'TOTAL PVT':
-                if current_pvt and pvt_start_row:
-                    pvt_ranges[current_pvt] = (pvt_start_row, row_idx)
-                    current_pvt = None
-                    pvt_start_row = None
+                if pvt_val != 'TOTAL PVT':
+                    if current_pvt != pvt_val:
+                        if current_pvt and pvt_start_row:
+                            # Chercher la ligne TOTAL PVT correspondante
+                            total_pvt_row = None
+                            for search_idx in range(pvt_start_row + 1, ws1.max_row + 1):
+                                if ws1.cell(search_idx, 2).value == 'TOTAL PVT':
+                                    total_pvt_row = search_idx
+                                    break
+                                elif ws1.cell(search_idx, 2).value and ws1.cell(search_idx, 2).value != current_pvt:
+                                    # On a atteint un nouveau PVT sans trouver TOTAL PVT
+                                    total_pvt_row = search_idx - 1
+                                    break
 
-        # ✅ CRUCIAL : Fermer le dernier PVT s'il n'a pas été fermé
+                            if total_pvt_row:
+                                pvt_ranges[current_pvt] = (pvt_start_row, total_pvt_row)
+
+                        current_pvt = pvt_val
+                        pvt_start_row = row_idx
+
+        # ✅ Fermer le dernier PVT s'il existe
         if current_pvt and pvt_start_row:
-            # Trouver la ligne TOTAL PVT correspondante
-            for row_idx in range(pvt_start_row, ws1.max_row + 1):
-                if ws1.cell(row_idx, 2).value == 'TOTAL PVT':
-                    pvt_ranges[current_pvt] = (pvt_start_row, row_idx)
+            total_pvt_row = None
+            for search_idx in range(pvt_start_row + 1, ws1.max_row + 1):
+                if ws1.cell(search_idx, 2).value == 'TOTAL PVT':
+                    total_pvt_row = search_idx
                     break
+                elif str(ws1.cell(search_idx, 1).value).startswith('TOTAL '):
+                    total_pvt_row = search_idx - 1
+                    break
+
+            if total_pvt_row:
+                pvt_ranges[current_pvt] = (pvt_start_row, total_pvt_row)
 
         # Fusionner les cellules DR
         for dr_name, (start, end) in dr_ranges.items():
@@ -457,20 +472,25 @@ if file_sim and file_om:
                 ws1.cell(start, 1).alignment = Alignment(horizontal='center', vertical='center')
                 ws1.cell(start, 1).value = dr_name
 
-        # ✅ Fusionner les cellules Gain Chauffeur et Gain Total pour TOUS les PVT
+        # ✅ Fusionner les cellules Gain Chauffeur et Gain Total pour TOUS les PVT (incluant TOTAL PVT)
         for pvt_name, (start, end) in pvt_ranges.items():
             # Fusionner Gain Chauffeur (colonne Q = 17)
-            ws1.merge_cells(start_row=start, start_column=17, end_row=end, end_column=17)
-            ws1.cell(start, 17).alignment = Alignment(horizontal='center', vertical='center')
-            ws1.cell(start, 17).value = 100000
+            if start <= end:
+                ws1.merge_cells(start_row=start, start_column=17, end_row=end, end_column=17)
+                ws1.cell(start, 17).alignment = Alignment(horizontal='center', vertical='center')
+                ws1.cell(start, 17).value = 100000
 
-            # Fusionner Gain SIM + OM + Chauffeur (colonne R = 18)
-            ws1.merge_cells(start_row=start, start_column=18, end_row=end, end_column=18)
-            ws1.cell(start, 18).alignment = Alignment(horizontal='center', vertical='center')
-            # Calculer le total pour ce PVT
-            total_sim = sum(ws1.cell(r, 11).value or 0 for r in range(start, end + 1) if ws1.cell(r, 11).value)
-            total_om = sum(ws1.cell(r, 16).value or 0 for r in range(start, end + 1) if ws1.cell(r, 16).value)
-            ws1.cell(start, 18).value = total_sim + total_om + 100000
+                # Fusionner Gain SIM + OM + Chauffeur (colonne R = 18)
+                ws1.merge_cells(start_row=start, start_column=18, end_row=end, end_column=18)
+                ws1.cell(start, 18).alignment = Alignment(horizontal='center', vertical='center')
+                # Calculer le total pour ce PVT (exclure TOTAL PVT du calcul)
+                total_sim = 0
+                total_om = 0
+                for r in range(start, end + 1):
+                    if ws1.cell(r, 2).value != 'TOTAL PVT':
+                        total_sim += ws1.cell(r, 11).value or 0
+                        total_om += ws1.cell(r, 16).value or 0
+                ws1.cell(start, 18).value = total_sim + total_om + 100000
 
         # Appliquer les styles
         for row_idx in range(3, ws1.max_row + 1):
