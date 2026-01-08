@@ -167,10 +167,6 @@ if file_sim and file_om:
     df_test['REALISATION_OM'] = df_test['REALISATION_OM'].fillna(0)
 
     # === RÉORGANISATION DES COLONNES SELON FORMAT MANAGER ===
-    # Structure: DR | PVT | PRENOM_VTO | NOM_VTO | LOGIN | Numéro Kabbu |
-    # SIM (R, O, R/O, Gain Max, Gain) | OM (R, O, R/O, Gain Max, Gain) |
-    # Gain Chauffeur | Gain SIM + OM + Chauffeur
-
     df_final = pd.DataFrame({
         'DR': df_test['DRV'],
         'PVT': df_test['PVT'],
@@ -178,19 +174,16 @@ if file_sim and file_om:
         'NOM_VTO': df_test['NOM_VENDEUR'],
         'LOGIN': df_test['LOGIN'],
         'Numéro Kabbu': df_test['KABBU'],
-        # SIM (sans préfixe SIM_)
         'R': df_test['REALISATION_SIM'].astype(int),
         'O': df_test['OBJECTIF SIM'].fillna(240).astype(int),
         'R/O': df_test['TAUX_SIM'],
         'Gain Max': df_test['GAIN_MAX_SIM'].fillna(75000).astype(int),
         'Gain': df_test['GAIN_SIM'].astype(int),
-        # OM (sans préfixe OM_)
         'R.1': df_test['REALISATION_OM'].astype(int),
         'O.1': df_test['OBJECTIF OM'].fillna(120).astype(int),
         'R/O.1': df_test['TAUX_OM'],
         'Gain Max.1': df_test['GAIN_MAX_OM'].fillna(25000).astype(int),
         'Gain.1': df_test['GAIN_OM'].astype(int),
-        # Totaux
         'Gain Chauffeur': None,
         'Gain SIM + OM + Chauffeur': None
     })
@@ -200,10 +193,8 @@ if file_sim and file_om:
 
     for drv, group_drv in df_final.groupby('DR'):
         for pvt, group_pvt in group_drv.groupby('PVT'):
-            # Ajouter les lignes du PVT
             df_with_totals = pd.concat([df_with_totals, group_pvt], ignore_index=True)
 
-            # Total PVT
             row_total_pvt = {
                 'DR': drv,
                 'PVT': "TOTAL PVT",
@@ -226,7 +217,6 @@ if file_sim and file_om:
             }
             df_with_totals = pd.concat([df_with_totals, pd.DataFrame([row_total_pvt])], ignore_index=True)
 
-        # Total DRV
         row_total_drv = {
             'DR': f"TOTAL {drv}",
             'PVT': '',
@@ -328,9 +318,49 @@ if file_sim and file_om:
 
         # Ligne 1: Groupes principaux
         ws1.insert_rows(1)
-        ws1.merge_cells('A1:F1')
-        ws1['A1'] = ''
+
+        # ✅ FUSIONNER LES COLONNES A à F sur les lignes 1 et 2
+        ws1.merge_cells('A1:A2')
+        ws1['A1'] = 'DR'
         ws1['A1'].fill = header_fill_gray
+        ws1['A1'].font = header_font
+        ws1['A1'].alignment = Alignment(horizontal='center', vertical='center')
+        ws1['A1'].border = thin_border
+
+        ws1.merge_cells('B1:B2')
+        ws1['B1'] = 'PVT'
+        ws1['B1'].fill = header_fill_gray
+        ws1['B1'].font = header_font
+        ws1['B1'].alignment = Alignment(horizontal='center', vertical='center')
+        ws1['B1'].border = thin_border
+
+        ws1.merge_cells('C1:C2')
+        ws1['C1'] = 'PRENOM_VTO'
+        ws1['C1'].fill = header_fill_gray
+        ws1['C1'].font = header_font
+        ws1['C1'].alignment = Alignment(horizontal='center', vertical='center')
+        ws1['C1'].border = thin_border
+
+        ws1.merge_cells('D1:D2')
+        ws1['D1'] = 'NOM_VTO'
+        ws1['D1'].fill = header_fill_gray
+        ws1['D1'].font = header_font
+        ws1['D1'].alignment = Alignment(horizontal='center', vertical='center')
+        ws1['D1'].border = thin_border
+
+        ws1.merge_cells('E1:E2')
+        ws1['E1'] = 'LOGIN'
+        ws1['E1'].fill = header_fill_gray
+        ws1['E1'].font = header_font
+        ws1['E1'].alignment = Alignment(horizontal='center', vertical='center')
+        ws1['E1'].border = thin_border
+
+        ws1.merge_cells('F1:F2')
+        ws1['F1'] = 'Numéro Kabbu'
+        ws1['F1'].fill = header_fill_gray
+        ws1['F1'].font = header_font
+        ws1['F1'].alignment = Alignment(horizontal='center', vertical='center')
+        ws1['F1'].border = thin_border
 
         ws1.merge_cells('G1:K1')
         ws1['G1'] = 'SIM'
@@ -346,7 +376,6 @@ if file_sim and file_om:
         ws1['L1'].alignment = Alignment(horizontal='center', vertical='center')
         ws1['L1'].border = thin_border
 
-        # Fusionner Q1 et Q2 pour Gain Chauffeur
         ws1.merge_cells('Q1:Q2')
         ws1['Q1'] = 'Gain Chauffeur'
         ws1['Q1'].fill = header_fill_gray
@@ -354,7 +383,6 @@ if file_sim and file_om:
         ws1['Q1'].alignment = Alignment(horizontal='center', vertical='center')
         ws1['Q1'].border = thin_border
 
-        # Fusionner R1 et R2 pour Gain SIM + OM + Chauffeur
         ws1.merge_cells('R1:R2')
         ws1['R1'] = 'Gain SIM + OM + Chauffeur'
         ws1['R1'].fill = header_fill_gray
@@ -362,15 +390,13 @@ if file_sim and file_om:
         ws1['R1'].alignment = Alignment(horizontal='center', vertical='center')
         ws1['R1'].border = thin_border
 
-        # Ligne 2: Headers détaillés (sauf Q et R qui sont déjà fusionnés)
+        # Ligne 2: Headers détaillés pour SIM et OM uniquement (G à P)
         for col_idx, cell in enumerate(ws1[2], start=1):
-            if col_idx not in [17, 18]:  # Ne pas toucher Q2 et R2 (fusionnés)
+            if 7 <= col_idx <= 16:  # Colonnes G à P (SIM et OM)
                 cell.fill = header_fill_gray
                 cell.font = header_font
                 cell.alignment = Alignment(horizontal='center', vertical='center')
                 cell.border = thin_border
-
-        # Appliquer les styles aux données (pas de coloration des colonnes, seulement les totaux)
 
         # Dictionnaire pour stocker les plages de lignes par DR et par PVT
         dr_ranges = {}
@@ -380,19 +406,15 @@ if file_sim and file_om:
         dr_start_row = None
         pvt_start_row = None
 
-        # Première passe : identifier les plages de lignes pour chaque DR et chaque PVT
+        # Première passe : identifier les plages
         for row_idx in range(3, ws1.max_row + 1):
-            pvt_val = ws1.cell(row_idx, 2).value  # Colonne PVT
-            dr_val = ws1.cell(row_idx, 1).value   # Colonne DR
+            pvt_val = ws1.cell(row_idx, 2).value
+            dr_val = ws1.cell(row_idx, 1).value
 
-            # Gestion des DR
             if dr_val and not str(dr_val).startswith('TOTAL') and dr_val != 'TOTAL GÉNÉRAL':
                 if current_dr != dr_val:
-                    # Nouveau DR détecté
                     if current_dr and dr_start_row:
-                        # On cherche la ligne TOTAL DR pour ce DR
                         total_dr_row = row_idx - 1
-                        # Remonter pour trouver la vraie ligne TOTAL DR
                         while total_dr_row >= dr_start_row and ws1.cell(total_dr_row, 2).value == 'TOTAL PVT':
                             total_dr_row -= 1
                         if ws1.cell(total_dr_row + 1, 2).value == 'TOTAL PVT':
@@ -401,77 +423,95 @@ if file_sim and file_om:
                     current_dr = dr_val
                     dr_start_row = row_idx
             elif str(dr_val).startswith('TOTAL ') and dr_val != 'TOTAL GÉNÉRAL':
-                # Fin du DR actuel
                 if current_dr and dr_start_row:
                     dr_ranges[current_dr] = (dr_start_row, row_idx - 1)
                     current_dr = None
                     dr_start_row = None
 
-            # Gestion des PVT (incluant TOTAL PVT)
             if pvt_val and not str(dr_val).startswith('TOTAL') and dr_val != 'TOTAL GÉNÉRAL':
                 if pvt_val != 'TOTAL PVT' and current_pvt != pvt_val:
-                    # Nouveau PVT détecté
                     if current_pvt and pvt_start_row:
                         pvt_ranges[current_pvt] = (pvt_start_row, row_idx - 1)
                     current_pvt = pvt_val
                     pvt_start_row = row_idx
             elif pvt_val == 'TOTAL PVT':
-                # Inclure la ligne TOTAL PVT dans la plage
                 if current_pvt and pvt_start_row:
                     pvt_ranges[current_pvt] = (pvt_start_row, row_idx)
                     current_pvt = None
                     pvt_start_row = None
 
-        # Fusionner les cellules DR (colonne A = 1) pour chaque DR
+        # Fusionner les cellules DR
         for dr_name, (start, end) in dr_ranges.items():
-            if start < end:  # Seulement si plusieurs lignes
+            if start < end:
                 ws1.merge_cells(start_row=start, start_column=1, end_row=end, end_column=1)
                 ws1.cell(start, 1).alignment = Alignment(horizontal='center', vertical='center')
                 ws1.cell(start, 1).value = dr_name
 
         # Fusionner les cellules Gain Chauffeur et Gain Total pour chaque PVT
         for pvt_name, (start, end) in pvt_ranges.items():
-            # Fusionner Gain Chauffeur (colonne Q = 17)
             ws1.merge_cells(start_row=start, start_column=17, end_row=end, end_column=17)
             ws1.cell(start, 17).alignment = Alignment(horizontal='center', vertical='center')
             ws1.cell(start, 17).value = 100000
 
-            # Fusionner Gain SIM + OM + Chauffeur (colonne R = 18)
             ws1.merge_cells(start_row=start, start_column=18, end_row=end, end_column=18)
             ws1.cell(start, 18).alignment = Alignment(horizontal='center', vertical='center')
-            # Calculer le total pour ce PVT
             total_sim = sum(ws1.cell(r, 11).value or 0 for r in range(start, end + 1) if ws1.cell(r, 11).value)
             total_om = sum(ws1.cell(r, 16).value or 0 for r in range(start, end + 1) if ws1.cell(r, 16).value)
             ws1.cell(start, 18).value = total_sim + total_om + 100000
 
-        # Troisième passe : appliquer les styles
+        # Appliquer les styles
         for row_idx in range(3, ws1.max_row + 1):
             for col_idx in range(1, ws1.max_column + 1):
                 cell = ws1.cell(row_idx, col_idx)
                 cell.border = thin_border
                 cell.alignment = Alignment(horizontal='center', vertical='center')
 
-            # Identifier le type de ligne
-            first_cell_val = ws1.cell(row_idx, 2).value  # Colonne PVT
+            first_cell_val = ws1.cell(row_idx, 2).value
             dr_val = ws1.cell(row_idx, 1).value
 
-            # Lignes de totaux TOTAL PVT : utiliser la couleur grise (même que Gain Chauffeur)
             if first_cell_val == 'TOTAL PVT':
-                for col in range(2, 17):  # B à P (PVT jusqu'à OM inclus, pas DR)
+                for col in range(2, 17):
                     ws1.cell(row_idx, col).fill = PatternFill(start_color="D9D9D9", end_color="D9D9D9", fill_type="solid")
                     ws1.cell(row_idx, col).font = Font(bold=True)
 
-            elif str(dr_val).startswith('TOTAL ') and dr_val != 'TOTAL GÉNÉRAL':  # TOTAL DR
-                # Colorer TOUTE la ligne en orange
+            elif str(dr_val).startswith('TOTAL ') and dr_val != 'TOTAL GÉNÉRAL':
                 for col in range(1, ws1.max_column + 1):
                     ws1.cell(row_idx, col).fill = PatternFill(start_color="FFE5CC", end_color="FFE5CC", fill_type="solid")
                     ws1.cell(row_idx, col).font = Font(bold=True)
 
             elif dr_val == 'TOTAL GÉNÉRAL':
-                # Colorer TOUTE la ligne en orange foncé
+                # ✅ TOTAL GÉNÉRAL : Couleur orange foncé avec texte NOIR
                 for col in range(1, ws1.max_column + 1):
                     ws1.cell(row_idx, col).fill = PatternFill(start_color="FFC000", end_color="FFC000", fill_type="solid")
-                    ws1.cell(row_idx, col).font = Font(bold=True, size=12, color="FFFFFF")
+                    ws1.cell(row_idx, col).font = Font(bold=True, size=12, color="000000")
+
+        # ✅ AJUSTER LA LARGEUR DES COLONNES
+        column_widths = {
+            'A': 15,   # DR
+            'B': 25,   # PVT
+            'C': 18,   # PRENOM_VTO
+            'D': 18,   # NOM_VTO
+            'E': 15,   # LOGIN
+            'F': 18,   # Numéro Kabbu
+            'G': 8,    # R (SIM)
+            'H': 8,    # O (SIM)
+            'I': 8,    # R/O (SIM)
+            'J': 12,   # Gain Max (SIM)
+            'K': 12,   # Gain (SIM)
+            'L': 8,    # R (OM)
+            'M': 8,    # O (OM)
+            'N': 8,    # R/O (OM)
+            'O': 12,   # Gain Max (OM)
+            'P': 12,   # Gain (OM)
+            'Q': 18,   # Gain Chauffeur
+            'R': 28    # Gain SIM + OM + Chauffeur
+        }
+
+        for col, width in column_widths.items():
+            ws1.column_dimensions[col].width = width
+
+        # ✅ FIXER L'EN-TÊTE (lignes 1 et 2) pour la feuille "Détails Paiement"
+        ws1.freeze_panes = 'A3'
 
         # Formater "Résumé PVT"
         ws2 = wb['Résumé PVT']
@@ -490,6 +530,17 @@ if file_sim and file_om:
                 if row_idx == ws2.max_row:
                     cell.fill = PatternFill(start_color="FFE5CC", end_color="FFE5CC", fill_type="solid")
                     cell.font = Font(bold=True)
+
+        # ✅ AJUSTER LA LARGEUR DES COLONNES pour Résumé PVT
+        ws2.column_dimensions['A'].width = 15   # DR
+        ws2.column_dimensions['B'].width = 25   # PVT
+        ws2.column_dimensions['C'].width = 18   # CONTACT
+        ws2.column_dimensions['D'].width = 15   # MONTANT
+        ws2.column_dimensions['E'].width = 18   # GAIN PVT (5%)
+        ws2.column_dimensions['F'].width = 18   # TOTAL GENERAL
+
+        # ✅ FIXER L'EN-TÊTE (ligne 1) pour la feuille "Résumé PVT"
+        ws2.freeze_panes = 'A2'
 
         # Sauvegarder
         final_buffer = BytesIO()
