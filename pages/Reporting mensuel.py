@@ -319,7 +319,7 @@ if file_sim and file_om:
         # Ligne 1: Groupes principaux
         ws1.insert_rows(1)
 
-        # ✅ FUSIONNER LES COLONNES A à F sur les lignes 1 et 2
+        # FUSIONNER LES COLONNES A à F sur les lignes 1 et 2
         ws1.merge_cells('A1:A2')
         ws1['A1'] = 'DR'
         ws1['A1'].fill = header_fill_gray
@@ -406,11 +406,12 @@ if file_sim and file_om:
         dr_start_row = None
         pvt_start_row = None
 
-        # Première passe : identifier les plages
+        # ✅ Première passe : identifier les plages (CORRIGÉ pour inclure le dernier PVT)
         for row_idx in range(3, ws1.max_row + 1):
             pvt_val = ws1.cell(row_idx, 2).value
             dr_val = ws1.cell(row_idx, 1).value
 
+            # Gestion des DR
             if dr_val and not str(dr_val).startswith('TOTAL') and dr_val != 'TOTAL GÉNÉRAL':
                 if current_dr != dr_val:
                     if current_dr and dr_start_row:
@@ -428,6 +429,7 @@ if file_sim and file_om:
                     current_dr = None
                     dr_start_row = None
 
+            # Gestion des PVT
             if pvt_val and not str(dr_val).startswith('TOTAL') and dr_val != 'TOTAL GÉNÉRAL':
                 if pvt_val != 'TOTAL PVT' and current_pvt != pvt_val:
                     if current_pvt and pvt_start_row:
@@ -440,6 +442,14 @@ if file_sim and file_om:
                     current_pvt = None
                     pvt_start_row = None
 
+        # ✅ CRUCIAL : Fermer le dernier PVT s'il n'a pas été fermé
+        if current_pvt and pvt_start_row:
+            # Trouver la ligne TOTAL PVT correspondante
+            for row_idx in range(pvt_start_row, ws1.max_row + 1):
+                if ws1.cell(row_idx, 2).value == 'TOTAL PVT':
+                    pvt_ranges[current_pvt] = (pvt_start_row, row_idx)
+                    break
+
         # Fusionner les cellules DR
         for dr_name, (start, end) in dr_ranges.items():
             if start < end:
@@ -447,14 +457,17 @@ if file_sim and file_om:
                 ws1.cell(start, 1).alignment = Alignment(horizontal='center', vertical='center')
                 ws1.cell(start, 1).value = dr_name
 
-        # Fusionner les cellules Gain Chauffeur et Gain Total pour chaque PVT
+        # ✅ Fusionner les cellules Gain Chauffeur et Gain Total pour TOUS les PVT
         for pvt_name, (start, end) in pvt_ranges.items():
+            # Fusionner Gain Chauffeur (colonne Q = 17)
             ws1.merge_cells(start_row=start, start_column=17, end_row=end, end_column=17)
             ws1.cell(start, 17).alignment = Alignment(horizontal='center', vertical='center')
             ws1.cell(start, 17).value = 100000
 
+            # Fusionner Gain SIM + OM + Chauffeur (colonne R = 18)
             ws1.merge_cells(start_row=start, start_column=18, end_row=end, end_column=18)
             ws1.cell(start, 18).alignment = Alignment(horizontal='center', vertical='center')
+            # Calculer le total pour ce PVT
             total_sim = sum(ws1.cell(r, 11).value or 0 for r in range(start, end + 1) if ws1.cell(r, 11).value)
             total_om = sum(ws1.cell(r, 16).value or 0 for r in range(start, end + 1) if ws1.cell(r, 16).value)
             ws1.cell(start, 18).value = total_sim + total_om + 100000
@@ -480,12 +493,11 @@ if file_sim and file_om:
                     ws1.cell(row_idx, col).font = Font(bold=True)
 
             elif dr_val == 'TOTAL GÉNÉRAL':
-                # ✅ TOTAL GÉNÉRAL : Couleur orange foncé avec texte NOIR
                 for col in range(1, ws1.max_column + 1):
                     ws1.cell(row_idx, col).fill = PatternFill(start_color="FFC000", end_color="FFC000", fill_type="solid")
                     ws1.cell(row_idx, col).font = Font(bold=True, size=12, color="000000")
 
-        # ✅ AJUSTER LA LARGEUR DES COLONNES
+        # AJUSTER LA LARGEUR DES COLONNES
         column_widths = {
             'A': 15,   # DR
             'B': 25,   # PVT
@@ -510,7 +522,7 @@ if file_sim and file_om:
         for col, width in column_widths.items():
             ws1.column_dimensions[col].width = width
 
-        # ✅ FIXER L'EN-TÊTE (lignes 1 et 2) pour la feuille "Détails Paiement"
+        # FIXER L'EN-TÊTE (lignes 1 et 2) pour la feuille "Détails Paiement"
         ws1.freeze_panes = 'A3'
 
         # Formater "Résumé PVT"
@@ -531,7 +543,7 @@ if file_sim and file_om:
                     cell.fill = PatternFill(start_color="FFE5CC", end_color="FFE5CC", fill_type="solid")
                     cell.font = Font(bold=True)
 
-        # ✅ AJUSTER LA LARGEUR DES COLONNES pour Résumé PVT
+        # AJUSTER LA LARGEUR DES COLONNES pour Résumé PVT
         ws2.column_dimensions['A'].width = 15   # DR
         ws2.column_dimensions['B'].width = 25   # PVT
         ws2.column_dimensions['C'].width = 18   # CONTACT
@@ -539,7 +551,7 @@ if file_sim and file_om:
         ws2.column_dimensions['E'].width = 18   # GAIN PVT (5%)
         ws2.column_dimensions['F'].width = 18   # TOTAL GENERAL
 
-        # ✅ FIXER L'EN-TÊTE (ligne 1) pour la feuille "Résumé PVT"
+        # FIXER L'EN-TÊTE (ligne 1) pour la feuille "Résumé PVT"
         ws2.freeze_panes = 'A2'
 
         # Sauvegarder
