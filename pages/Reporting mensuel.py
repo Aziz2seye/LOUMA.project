@@ -580,9 +580,9 @@ if file_sim and file_om:
         final_buffer.seek(0)
 
         st.download_button(
-            label="📥 Télécharger le Rapport Excel (Format Manager)",
+            label="📥 Télécharger le Rapport Excel",
             data=final_buffer,
-            file_name="paiement_mensuel_format_manager.xlsx",
+            file_name="paiement_mensuel.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
 
